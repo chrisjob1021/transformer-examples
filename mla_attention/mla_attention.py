@@ -128,7 +128,8 @@ class MultiHeadLatentAttention(nn.Module):
             # Create the figure and axes
             fig, axes = plt.subplots(num_rows, items_per_row, figsize=(15, 3 * num_rows))
             
-            fig.suptitle('RoPE Visualizations: Single Example, Single Head, Vector Pairs from Single Even/Odd Pair', fontsize=16)
+            fig.suptitle('RoPE Visualizations: 1 Example, 1 Head, 1 Even/Odd Vector Position Pair', 
+                fontsize=16)
             
             # Convert axes to a 2D numpy array regardless of its original shape
             if num_rows == 1 and items_per_row == 1:
@@ -214,7 +215,7 @@ class MultiHeadLatentAttention(nn.Module):
 
         batch_size, seq_len, dim = k_R_t.shape    
         k_R_t = k_R_t.view(batch_size, seq_len, config.num_heads, config.per_head_dim).transpose(1, 2)
-        print("Visualizing RoPE K vector pairs from single dimension in R^2")
+        print("Visualizing RoPE K vector pairs")
         k_R_t = self.apply_rope(k_R_t, visualize=True)
 
         return k_R_t, kr_cache
@@ -240,7 +241,7 @@ class MultiHeadLatentAttention(nn.Module):
         batch_size, seq_len, dim = q_C_t.shape
         q_C_t = q_C_t.view(batch_size, seq_len, config.num_heads, config.per_head_dim).transpose(1, 2)
 
-        print("Visualizing RoPE Q vector pairs from single dimension in R^2")
+        print("Visualizing RoPE Q vector pairs")
         q_R_t = self.apply_rope(q_C_t, past_seq_len, visualize=True)
 
         q_t = torch.cat([q_C_t, q_R_t], dim=-1)
