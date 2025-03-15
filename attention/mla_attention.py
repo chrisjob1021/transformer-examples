@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import debugpy
+from mulit_head_attention import MultiHeadAttention
 
 class MLAConfig:
     def __init__(self, dim=256, num_heads=4):
@@ -13,12 +14,11 @@ class MLAConfig:
         self.dim_prime_compressed = self.per_head_dim*num_heads // 16
         self.dim_compressed = self.per_head_dim*num_heads // 16
 
-# Create a default config object
-config = MLAConfig()
-
 class MultiHeadLatentAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
+
+        self.config = config
 
         self.W_DKV = nn.Linear(config.dim, config.dim_compressed)
         self.W_UK = nn.Linear(config.dim_compressed, config.num_heads*config.per_head_dim)
@@ -214,7 +214,7 @@ class MultiHeadLatentAttention(nn.Module):
         kr_cache = k_R_t
 
         batch_size, seq_len, dim = k_R_t.shape    
-        k_R_t = k_R_t.view(batch_size, seq_len, config.num_heads, config.per_head_dim).transpose(1, 2)
+        k_R_t = k_R_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
         print("Visualizing RoPE K vector pairs")
         k_R_t = self.apply_rope(k_R_t, visualize=True)
 
@@ -229,17 +229,17 @@ class MultiHeadLatentAttention(nn.Module):
 
         k_R_t, kr_cache = self.KR(h, kr_cache)
         batch_size, seq_len, dim = k_C_t.shape
-        k_C_t = k_C_t.view(batch_size, seq_len, config.num_heads, config.per_head_dim).transpose(1, 2)
+        k_C_t = k_C_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
         k_t = torch.cat([k_C_t, k_R_t], dim=-1)
 
         batch_size, seq_len, dim = v_C_t.shape
-        v_C_t = v_C_t.view(batch_size, seq_len, config.num_heads, config.per_head_dim).transpose(1, 2)
+        v_C_t = v_C_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
         q_C_t = self.LatentQAttention(h)
 
         batch_size, seq_len, dim = q_C_t.shape
-        q_C_t = q_C_t.view(batch_size, seq_len, config.num_heads, config.per_head_dim).transpose(1, 2)
+        q_C_t = q_C_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
         print("Visualizing RoPE Q vector pairs")
         q_R_t = self.apply_rope(q_C_t, past_seq_len, visualize=True)
@@ -286,64 +286,3 @@ class LatentQAttention(nn.Module):
         c_Q_t = self.W_DQ(h)
         q_C_t = self.W_UQ(c_Q_t)
         return q_C_t
-
-class SingleHead(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-
-        # RoPE added to the query and key
-        self.W_K = nn.Linear(config.per_head_dim + config.per_head_dim, config.per_head_dim)
-        self.W_Q = nn.Linear(config.per_head_dim + config.per_head_dim, config.per_head_dim)
-        self.W_V = nn.Linear(config.per_head_dim, config.per_head_dim)
-    
-    def forward(self, q, k, v):
-        K = self.W_K(k)
-        Q = self.W_Q(q)
-        V = self.W_V(v)
-        return K, Q, V
-
-class MultiHeadAttention(nn.Module):
-    def __init__(self, config, W_O):
-        super().__init__()
-
-        self.heads = nn.ModuleList([SingleHead(config) for _ in range(config.num_heads)])
-
-        self.W_O = W_O
-
-    def forward(self, q, k, v):
-        all_K = []
-        all_Q = []
-        all_V = []
-
-        for head_idx, head in enumerate(self.heads):
-            K_new, Q_new, V_new = head(q[:, head_idx], k[:, head_idx], v[:, head_idx])
-
-            K_new = K_new.unsqueeze(1)
-            Q_new = Q_new.unsqueeze(1)
-            V_new = V_new.unsqueeze(1)
-
-            all_K.append(K_new)
-            all_Q.append(Q_new)
-            all_V.append(V_new)
-        
-        all_K = torch.cat(all_K, dim=1)
-        all_Q = torch.cat(all_Q, dim=1)
-        all_V = torch.cat(all_V, dim=1)
-
-        K = all_K
-        V = all_V
-        Q = torch.cat([all_Q], dim=-2)
-
-        QK = Q @ K.transpose(-2, -1)
-        # config.per_head_dim + config.per_head_dim is accounting for RoPE
-        # dh + dRh, which in our case are both equal to per_head_dim
-        QK = QK / np.sqrt(config.per_head_dim + config.per_head_dim)
-        QK = torch.softmax(QK, dim=-1)
-        o = QK @ V
-
-        batch_size, n_heads, seq_len, per_head_dim = o.shape
-        o = o.transpose(1, 2).contiguous().view(batch_size, seq_len, config.dim)
-        
-        u = self.W_O(o)
-
-        return u
