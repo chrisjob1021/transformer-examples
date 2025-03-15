@@ -41,12 +41,12 @@ attn_output, latent_kv_cache, kr_cache = model(x)
 
 ### Interactive Notebook
 
-This repository includes a Jupyter notebook (`mla-attention.ipynb`) that demonstrates the implementation and usage of Multi-Head Latent Attention. 
+This repository includes a Jupyter notebook (`mla_attention.ipynb`) that demonstrates the implementation and usage of Multi-Head Latent Attention. 
 
 To run the notebook:
 
 ```bash
-jupyter notebook mla-attention.ipynb
+jupyter notebook mla_attention.ipynb
 ```
 
 ### Debugging with debugpy

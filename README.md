@@ -6,7 +6,7 @@ This repository contains a collection of toy implementations and examples of key
 
 | Component | Description | Paper |
 |-----------|-------------|-------|
-| [Multi-Head Latent Attention (MLA)](./mla_attention) | A novel attention mechanism from DeepSeek V2 that uses latent queries to reduce KV cache and Rotary Position Embeddings | [DeepSeek V2 Technical Report](https://arxiv.org/abs/2405.04434) |
+| [Multi-Head Latent Attention (MLA)](./attention) | A novel attention mechanism from DeepSeek V2 that uses latent queries to reduce KV cache and Rotary Position Embeddings | [DeepSeek V2 Technical Report](https://arxiv.org/abs/2405.04434) |
 
 ## Getting Started
 
