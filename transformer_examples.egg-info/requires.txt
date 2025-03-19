@@ -1,0 +1,4 @@
+torch>=1.0.0
+numpy>=1.19.0
+matplotlib>=3.3.0
+debugpy>=1.0.0

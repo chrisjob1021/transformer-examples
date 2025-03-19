@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import debugpy
-from mulit_head_attention import MultiHeadAttention
+from .multi_head_attention import MultiHeadAttention
 
 class MLAConfig:
     def __init__(self, dim=256, num_heads=4):
