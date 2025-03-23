@@ -1,3 +1,9 @@
+"""
+Implementation of Multi-Head Attention based on the original "Attention Is All You Need" paper:
+Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., & Polosukhin, I. (2017).
+Attention Is All You Need. arXiv:1706.03762
+"""
+
 from torch import nn
 import torch
 import numpy as np

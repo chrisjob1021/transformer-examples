@@ -1,13 +1,18 @@
+"""
+Implementation of Relative Multi-Head Self-Attention based on:
+1. Shaw, P., Uszkoreit, J., & Vaswani, A. (2018). Self-Attention with Relative Position Representations.
+   arXiv:1803.02155
+
+2. Su, J., Lu, Y., Pan, S., Wen, B., & Liu, Y. (2021). RoFormer: Enhanced Transformer with Rotary Position Embedding.
+   arXiv:2104.09864
+"""
+
 import torch
 import torch.nn as nn
 import math
 from attention.config import Config
 
 class RelativeMultiHeadSelfAttention(nn.Module):
-    """
-    An example implementation of multi-head self-attention with
-    relative position representations, following Shaw et al. (2018).
-    """
     def __init__(self, config: Config):
         super().__init__()
 

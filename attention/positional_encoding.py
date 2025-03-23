@@ -2,13 +2,18 @@ import torch
 import torch.nn as nn
 import math
 from attention.config import Config
+
 class AbsolutePositionalEncoding(nn.Module):
     """
-    Implements the sinusoidal positional encoding described in "Attention Is All You Need", Vasani et. al. [2017]
+    Implementation of Absolute Positional Encoding based on the "Attention Is All You Need" paper:
+    Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., & Polosukhin, I. (2017).
+    Attention Is All You Need. arXiv:1706.03762
 
-    pi()   = sin(pos / 10000^(2i/dim))
-    PE(pos, 2i+1) = cos(pos / 10000^(2i/dim))
+    The sinusoidal positional encoding is defined as:
+    pe(pos, 2i)   = sin(pos / 10000^(2i/dim))
+    pe(pos, 2i+1) = cos(pos / 10000^(2i/dim))
     """
+
     def __init__(self, config: Config):
         super().__init__()
 

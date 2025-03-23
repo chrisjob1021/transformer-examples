@@ -6,16 +6,57 @@ This repository contains a collection of toy implementations and examples of key
 
 | Component | Description | Paper |
 |-----------|-------------|-------|
-| [Multi-Head Latent Attention (MLA)](./attention) | A novel attention mechanism from DeepSeek V2 that uses latent queries to reduce KV cache and Rotary Position Embeddings | [DeepSeek V2 Technical Report](https://arxiv.org/abs/2405.04434) |
+| [Multi-Head Latent Attention (MLA)](./attention/mla_attention.ipynb) | A novel attention mechanism from DeepSeek V2 that uses latent queries to reduce KV cache and Rotary Position Embeddings | [DeepSeek V2 Technical Report](https://arxiv.org/abs/2405.04434) |
+| [Multi-Head Attention](./attention/multi_head_attention.py) | The original attention mechanism from the Transformer paper | [Attention Is All You Need](https://arxiv.org/abs/1706.03762) |
+| [Relative Multi-Head Attention](./attention) | Attention with relative position representations | [Self-Attention with Relative Position Representations](https://arxiv.org/abs/1803.02155) |
+| [Absolute Positional Encoding](./attention/positional_encoding.ipynb) | Sinusoidal positional encoding from the original Transformer | [Attention Is All You Need](https://arxiv.org/abs/1706.03762) |
+| [Rotary Position Embedding](./attention/mla_attention.py) | Enhanced positional encoding using rotation | [RoFormer](https://arxiv.org/abs/2104.09864) |
+
+## Setup
+
+1. Create and activate a virtual environment (optional but recommended):
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+2. Install the package in development mode:
+```bash
+pip install -e .
+```
+
+3. Install additional dependencies:
+```bash
+pip install -r requirements.txt
+```
 
 ## Getting Started
 
 Each component has its own directory with:
 - Implementation code
 - Jupyter notebook with examples (and visualizations)
-- Requirements file for dependencies
 
-To get started with a specific component, navigate to its directory and follow the instructions in its README.
+To run a notebook:
+
+1. Make sure Jupyter is installed:
+```bash
+pip install jupyter
+```
+
+2. Start Jupyter:
+```bash
+jupyter notebook
+```
+
+3. In your browser, navigate to the component you want to explore (e.g., `attention/mla_attention.ipynb`)
+4. Click on the notebook to open it
+5. You can run cells individually by pressing `Shift+Enter` or run all cells from the `Cell` menu
+
+For example, to explore Multi-Head Latent Attention from DeepSeek:
+```bash
+cd attention
+jupyter notebook mla_attention.ipynb
+```
 
 ## Contributing
 

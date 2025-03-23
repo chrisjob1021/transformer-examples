@@ -1,3 +1,9 @@
+"""
+Implementation of Multi-Head Latent Attention (MLA) and RoPE based on DeepSeek-V2 paper:
+DeepSeek-V2: An Open Source Model with DeepSeek-V1's Performance and 2x Training Speed
+https://arxiv.org/abs/2402.19526
+"""
+
 from torch import nn
 import torch
 import matplotlib.pyplot as plt
