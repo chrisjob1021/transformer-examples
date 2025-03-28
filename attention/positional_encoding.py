@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import math
-from attention.config import Config
+from utils import Config
 
 class AbsolutePositionalEncoding(nn.Module):
     """

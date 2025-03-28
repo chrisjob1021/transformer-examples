@@ -11,7 +11,7 @@ import numpy as np
 import math
 import debugpy
 from attention.multi_head_attention import MultiHeadAttention
-from attention.config import MLAConfig
+from utils import MLAConfig
 from utils import apply_rope
 
 class MultiHeadLatentAttention(nn.Module):

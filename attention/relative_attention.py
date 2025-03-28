@@ -10,7 +10,7 @@ Implementation of Relative Multi-Head Self-Attention based on:
 import torch
 import torch.nn as nn
 import math
-from attention.config import Config
+from utils import Config
 
 class RelativeMultiHeadSelfAttention(nn.Module):
     def __init__(self, config: Config):
