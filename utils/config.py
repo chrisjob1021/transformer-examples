@@ -1,10 +1,11 @@
 class Config:
-    def __init__(self, dim=256, num_heads=4, max_len=1024, dropout=0.1):
+    def __init__(self, dim=256, num_heads=4, max_len=1024, dropout=0.1, rope=False):
         self.dim = dim
         self.num_heads = num_heads
         self.per_head_dim = dim // num_heads
         self.max_len = max_len
         self.dropout = dropout
+        self.rope = rope
 
 class MLAConfig:
     def __init__(self, dim=256, num_heads=4):

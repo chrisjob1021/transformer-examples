@@ -55,12 +55,20 @@ class MultiHeadAttention(nn.Module):
         V = all_V
         Q = torch.cat([all_Q], dim=-2)
 
-        QK = Q @ K.transpose(-2, -1)
+        if self.config.rope:
+            Q = apply_rope(Q, visualize=True)
+            K = apply_rope(K, visualize=True)
+
+        attn_scores = Q @ K.transpose(-2, -1)
         # config.per_head_dim + config.per_head_dim is accounting for RoPE
         # dh + dRh, which in our case are both equal to per_head_dim
-        QK = QK / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
-        QK = torch.softmax(QK, dim=-1)
-        o = QK @ V
+        attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
+
+        if mask is not None:
+            attn_scores = attn_scores.masked_fill(mask == 0, float("-inf"))
+
+        attn_probs = torch.softmax(attn_scores, dim=-1)
+        o = attn_probs @ V
 
         batch_size, n_heads, seq_len, per_head_dim = o.shape
         o = o.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.dim)
