@@ -16,9 +16,9 @@ class RelativeMultiHeadSelfAttention(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
 
-        self.d_model = config.dim
+        self.d_model = config.d_model
         self.num_heads = config.num_heads
-        self.head_dim = config.dim // config.num_heads
+        self.head_dim = config.d_model // config.num_heads
         self.max_len = config.max_len
 
         # Projections for the usual Q, K, V

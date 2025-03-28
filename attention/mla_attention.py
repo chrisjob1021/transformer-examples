@@ -20,17 +20,17 @@ class MultiHeadLatentAttention(nn.Module):
 
         self.config = config
 
-        self.W_DKV = nn.Linear(config.dim, config.dim_compressed)
-        self.W_UK = nn.Linear(config.dim_compressed, config.num_heads*config.per_head_dim)
-        self.W_UV = nn.Linear(config.dim_compressed, config.num_heads*config.per_head_dim)
+        self.W_DKV = nn.Linear(config.d_model, config.d_model_compressed)
+        self.W_UK = nn.Linear(config.d_model_compressed, config.num_heads*config.per_head_dim)
+        self.W_UV = nn.Linear(config.d_model_compressed, config.num_heads*config.per_head_dim)
         
-        self.W_DQ = nn.Linear(config.dim, config.dim_prime_compressed)
-        self.W_UQ = nn.Linear(config.dim_prime_compressed, config.num_heads*config.per_head_dim)
+        self.W_DQ = nn.Linear(config.d_model, config.d_model_prime_compressed)
+        self.W_UQ = nn.Linear(config.d_model_prime_compressed, config.num_heads*config.per_head_dim)
         
-        self.W_KR = nn.Linear(config.dim, config.dim)
-        self.W_QR = nn.Linear(config.dim, config.dim)
+        self.W_KR = nn.Linear(config.d_model, config.d_model)
+        self.W_QR = nn.Linear(config.d_model, config.d_model)
 
-        self.W_O = nn.Linear(config.dim, config.dim)
+        self.W_O = nn.Linear(config.d_model, config.d_model)
 
         self.LatentKVAttention = LatentKVAttention(config, self.W_DKV, self.W_UK, self.W_UV)
         self.LatentQAttention = LatentQAttention(config, self.W_DQ, self.W_UQ)

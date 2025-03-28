@@ -31,7 +31,7 @@ class MultiHeadAttention(nn.Module):
 
         self.W_O = W_O
 
-    def forward(self, q, k, v):
+    def forward(self, q, k, v, mask=None):
         all_K = []
         all_Q = []
         all_V = []
@@ -71,7 +71,7 @@ class MultiHeadAttention(nn.Module):
         o = attn_probs @ V
 
         batch_size, n_heads, seq_len, per_head_dim = o.shape
-        o = o.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.dim)
+        o = o.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
         
         u = self.W_O(o)
 

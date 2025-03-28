@@ -18,18 +18,18 @@ class AbsolutePositionalEncoding(nn.Module):
         super().__init__()
 
         self.max_len = config.max_len
-        self.dim = config.dim
+        self.d_model = config.d_model
         self.dropout = nn.Dropout(config.dropout)
 
-        pe = torch.zeros(self.max_len, self.dim)
+        pe = torch.zeros(self.max_len, self.d_model)
         pos_within_vector = torch.arange(0, self.max_len, dtype=float).unsqueeze(1)
-        every_other_dim = torch.arange(0, self.dim, 2, dtype=float)
+        every_other_dim = torch.arange(0, self.d_model, 2, dtype=float)
         '''
         a = 2i/dim
         -ln(10000^a) = -a ln(10000) 
         exp(ln(10000^-a)) = 10000^(-a) 
         '''
-        div_term = torch.exp((math.log(10000.0)) * -every_other_dim / self.dim)
+        div_term = torch.exp((math.log(10000.0)) * -every_other_dim / self.d_model)
         pe[:, 0::2] = torch.sin(pos_within_vector * div_term)
         pe[:, 1::2] = torch.cos(pos_within_vector * div_term)
         pe = pe.unsqueeze(0)
