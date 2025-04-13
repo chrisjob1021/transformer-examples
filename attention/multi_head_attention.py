@@ -16,6 +16,9 @@ class SingleHead(nn.Module):
         self.W_K = nn.Linear(config.per_head_dim + config.per_head_dim, config.per_head_dim)
         self.W_Q = nn.Linear(config.per_head_dim + config.per_head_dim, config.per_head_dim)
         self.W_V = nn.Linear(config.per_head_dim, config.per_head_dim)
+
+        if config.rope:
+            self.rope = RotaryPositionalEncoding(config)
     
     def forward(self, q, k, v):
         K = self.W_K(k)
@@ -56,8 +59,8 @@ class MultiHeadAttention(nn.Module):
         Q = torch.cat([all_Q], dim=-2)
 
         if self.config.rope:
-            Q = apply_rope(Q, visualize=True)
-            K = apply_rope(K, visualize=True)
+            Q = self.rope(Q)
+            K = self.rope(K)
 
         attn_scores = Q @ K.transpose(-2, -1)
         # config.per_head_dim + config.per_head_dim is accounting for RoPE
