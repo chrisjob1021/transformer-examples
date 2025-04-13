@@ -7,5 +7,5 @@ setup(
     author="Chris O'Brien",
     author_email="chris@chrisobrien.ai",
     packages=find_packages(),
-    python_requires=">=3.13",
+    python_requires=">=3.12",
 )
