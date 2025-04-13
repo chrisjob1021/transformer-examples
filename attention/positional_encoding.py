@@ -5,6 +5,7 @@ from utils import Config
 
 class RotaryPositionalEncoding(nn.Module):
     def __init__(self, config: Config):
+        super().__init__()
         self.config = config
         self.past_seq_len = 0
 
