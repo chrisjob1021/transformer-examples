@@ -33,3 +33,20 @@ class RoFormerEncoderLayer(nn.Module):
         x = x + self.dropout2(ffn_output)
         x = self.ln2(x)
         return x
+
+class RoFormerEncoder(nn.Module):
+    def __init__(self, config: Config):
+        super().__init__()
+        self.config = config
+
+        self.embeddings = nn.Embedding(config.vocab_size, config.d_model)
+        self.layers = nn.ModuleList([RoFormerEncoderLayer(config) for _ in range(config.num_layers)])
+        self.dropout = nn.Dropout(config.dropout)
+
+    def forward(self, input_ids, mask=None):
+        x = self.embeddings(input_ids)
+        x = self.dropout(x)
+
+        for layer in self.layers:
+            x = layer(x, mask=mask)
+        return x
