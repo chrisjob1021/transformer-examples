@@ -2,6 +2,7 @@ import attention
 import torch.nn as nn
 from utils import Config
 import torch
+import torch.nn.functional as F
 
 class RoFormerEncoderLayer(nn.Module):
     def __init__(self, config: Config):
@@ -62,14 +63,14 @@ class RoFormerEncoder(nn.Module):
         return x
 
 class RoFormerForCausalLM(nn.Module):
-    def __init__(self, backbone: RoFormerEncoder):
+    def __init__(self, backbone: RoFormerEncoder, config: Config):
         super().__init__()
         self.backbone = backbone
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
         self.lm_head.weight = backbone.embeddings.weight # tie weights between lm head and embeddings
 
-    def forward(self, input_ids, mask=None, labels=None):
-        hidden = self.backbone(input_ids, mask)
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        hidden = self.backbone(input_ids, attention_mask)
         logits = self.lm_head(hidden) # [batch_size, sequence_length, vocab_size]
         loss = None
 

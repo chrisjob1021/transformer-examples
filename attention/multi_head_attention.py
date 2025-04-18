@@ -39,6 +39,13 @@ class MultiHeadAttention(nn.Module):
         self.W_O = W_O
 
     def forward(self, q, k, v, mask=None):
+        batch_size, num_heads, seq_len, per_head_dim = q.shape
+        
+        # Create causal mask
+        causal_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, seq_len]
+        causal_mask = causal_mask.to(q.device)
+
         all_K = []
         all_Q = []
         all_V = []
@@ -70,10 +77,10 @@ class MultiHeadAttention(nn.Module):
         # config.per_head_dim + config.per_head_dim is accounting for RoPE
         # dh + dRh, which in our case are both equal to per_head_dim
         attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
-
-        if mask is not None:
-            attn_scores = attn_scores.masked_fill(mask == 0, float("-inf"))
-
+        
+        # Use causal mask
+        attn_scores = attn_scores.masked_fill(causal_mask, float("-inf"))
+        
         attn_probs = torch.softmax(attn_scores, dim=-1)
         o = attn_probs @ V
 
