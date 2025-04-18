@@ -51,9 +51,6 @@ class RoFormerEncoder(nn.Module):
         self.embeddings = nn.Embedding(config.vocab_size, config.d_model)
         self.layers = nn.ModuleList([RoFormerEncoderLayer(config) for _ in range(config.num_layers)])
         self.dropout = nn.Dropout(config.dropout)
-        
-        # Add final projection layer to vocabulary space
-        self.output_projection = nn.Linear(config.d_model, config.vocab_size)
 
     def forward(self, input_ids, mask=None):
         x = self.embeddings(input_ids)
@@ -62,6 +59,4 @@ class RoFormerEncoder(nn.Module):
         for layer in self.layers:
             x = layer(x, mask)
             
-        # Project to vocabulary space
-        logits = self.output_projection(x)
-        return logits
+        return x

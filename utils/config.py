@@ -49,12 +49,16 @@ class TrainingConfig:
         steps: int = 100,
         batch_size: int = 32,
         learning_rate: float = 1e-4,
-        weight_decay: float = 0.01
+        weight_decay: float = 0.01,
+        max_len: int = 1024,
+        block_size: int = 1024,
     ) -> None:
         self.steps = steps
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.max_len = max_len
+        self.block_size = block_size
 
 class MLAConfig(Config):
     """Configuration class for MLA (Multi-Linear Attention) model.
