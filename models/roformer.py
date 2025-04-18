@@ -77,6 +77,14 @@ class RoFormerForCausalLM(nn.Module):
         batch_size, sequence_length, vocab_size = logits.size()
 
         if labels is not None:
+            # Add debugging prints
+            print(f"Input IDs shape: {input_ids.shape}")
+            print(f"Labels shape: {labels.shape}")
+            print(f"Logits shape: {logits.shape}")
+            print(f"Sample input_ids: {input_ids[0][:5]}")
+            print(f"Sample labels: {labels[0][:5]}")
+            print(f"Sample logits max values: {torch.max(logits[0, 0, :])}")
+            
             # Flatten the logits and labels for cross entropy loss
             loss = F.cross_entropy(
                 logits.view(batch_size * sequence_length, vocab_size),
@@ -84,5 +92,7 @@ class RoFormerForCausalLM(nn.Module):
             # This flattening is necessary because PyTorch's cross_entropy expects:
             # Input (logits): [N, C] where N is number of samples and C is number of classes
             # Target (labels): [N] where each value is the correct class index
+
+        print(f"loss: {loss}")
 
         return {"loss": loss, "logits": logits}
