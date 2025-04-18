@@ -27,8 +27,8 @@ class RoFormerEncoderLayer(nn.Module):
         self.dropout2 = nn.Dropout(config.dropout)
         self.ln2 = nn.LayerNorm(config.d_model)
 
-    def forward(self, x):
-        attn_output = self.self_attn(x)
+    def forward(self, x, mask=None):
+        attn_output = self.self_attn(x, mask=mask)
         x = x + self.dropout1(attn_output)
         x = self.ln1(x)
 
