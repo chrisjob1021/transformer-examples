@@ -1,11 +1,14 @@
 import attention
+import torch.nn as nn
+from utils import Config
 
 class RoFormerEncoderLayer(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
         self.config = config
 
-        self.self_attn = attention.MultiHeadAttention(config, rope=True)
+        self.W_O = nn.Linear(config.d_model, config.d_model)
+        self.self_attn = attention.MultiHeadAttention(config, self.W_O)
         
         # https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html#torch.nn.LayerNorm
         # Applies Layer Normalization over a mini-batch of inputs.
@@ -48,5 +51,5 @@ class RoFormerEncoder(nn.Module):
         x = self.dropout(x)
 
         for layer in self.layers:
-            x = layer(x, mask=mask)
+            x = layer(x, mask)
         return x
