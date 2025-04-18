@@ -1,6 +1,7 @@
 import attention
 import torch.nn as nn
 from utils import Config
+import torch
 
 class RoFormerEncoderLayer(nn.Module):
     def __init__(self, config: Config):
@@ -28,7 +29,12 @@ class RoFormerEncoderLayer(nn.Module):
         self.ln2 = nn.LayerNorm(config.d_model)
 
     def forward(self, x, mask=None):
-        attn_output = self.self_attn(x, mask=mask)
+        batch_size, seq_len = x.shape[0], x.shape[1]
+        x_reshaped = x.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+
+        attn_output = self.self_attn(q=x_reshaped, k=x_reshaped, v=x_reshaped, mask=mask)
+        attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
+
         x = x + self.dropout1(attn_output)
         x = self.ln1(x)
 
@@ -45,6 +51,9 @@ class RoFormerEncoder(nn.Module):
         self.embeddings = nn.Embedding(config.vocab_size, config.d_model)
         self.layers = nn.ModuleList([RoFormerEncoderLayer(config) for _ in range(config.num_layers)])
         self.dropout = nn.Dropout(config.dropout)
+        
+        # Add final projection layer to vocabulary space
+        self.output_projection = nn.Linear(config.d_model, config.vocab_size)
 
     def forward(self, input_ids, mask=None):
         x = self.embeddings(input_ids)
@@ -52,4 +61,7 @@ class RoFormerEncoder(nn.Module):
 
         for layer in self.layers:
             x = layer(x, mask)
-        return x
+            
+        # Project to vocabulary space
+        logits = self.output_projection(x)
+        return logits

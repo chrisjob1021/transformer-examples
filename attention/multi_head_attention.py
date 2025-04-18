@@ -12,11 +12,15 @@ class SingleHead(nn.Module):
     def __init__(self, config):
         super().__init__()
 
-        # RoPE added to the query and key
-        self.W_K = nn.Linear(config.per_head_dim + config.per_head_dim, config.per_head_dim)
-        self.W_Q = nn.Linear(config.per_head_dim + config.per_head_dim, config.per_head_dim)
+        # Input dimension depends on whether RoPE is enabled
+        input_dim = config.per_head_dim * 2 if config.rope else config.per_head_dim
+        
+        # Adjust linear layer input dimensions based on RoPE setting
+        self.W_K = nn.Linear(input_dim, config.per_head_dim)
+        self.W_Q = nn.Linear(input_dim, config.per_head_dim)
         self.W_V = nn.Linear(config.per_head_dim, config.per_head_dim)
-
+        
+        self.rope = None
         if config.rope:
             self.rope = RotaryPositionalEncoding(config)
     
