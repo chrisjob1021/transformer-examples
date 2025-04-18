@@ -2,6 +2,27 @@
 
 This repository contains a collection of toy implementations and examples of key components from modern Transformer architectures. Each example is designed to be educational, well-documented, and easy to understand.
 
+## Installation
+
+There are two ways to install this package:
+
+1. **For Development (Editable Install)**
+```bash
+git clone https://github.com/yourusername/transformer-examples.git
+cd transformer-examples
+pip install -e .
+```
+
+2. **As a Package**
+```bash
+pip install git+https://github.com/yourusername/transformer-examples.git
+```
+
+After installation, you can import components like this:
+```python
+from models.roformer import RoFormerEncoder, RoFormerForCausalLM
+```
+
 ## Components
 
 | Component | Description | Paper |
