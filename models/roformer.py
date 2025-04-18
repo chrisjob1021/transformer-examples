@@ -60,3 +60,28 @@ class RoFormerEncoder(nn.Module):
             x = layer(x, mask)
             
         return x
+
+class RoFormerForCausalLM(nn.Module):
+    def __init__(self, backbone: RoFormerEncoder):
+        super().__init__()
+        self.backbone = backbone
+        self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
+        self.lm_head.weight = backbone.embeddings.weight # tie weights between lm head and embeddings
+
+    def forward(self, input_ids, mask=None, labels=None):
+        hidden = self.backbone(input_ids, mask)
+        logits = self.lm_head(hidden) # [batch_size, sequence_length, vocab_size]
+        loss = None
+
+        batch_size, sequence_length, vocab_size = logits.size()
+
+        if labels is not None:
+            # Flatten the logits and labels for cross entropy loss
+            loss = F.cross_entropy(
+                logits.view(batch_size * sequence_length, vocab_size),
+                labels.view(batch_size * sequence_length))
+            # This flattening is necessary because PyTorch's cross_entropy expects:
+            # Input (logits): [N, C] where N is number of samples and C is number of classes
+            # Target (labels): [N] where each value is the correct class index
+
+        return {"loss": loss, "logits": logits}

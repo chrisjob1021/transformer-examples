@@ -34,6 +34,8 @@ class Config:
         self.vocab_size = vocab_size
         self.num_layers = num_layers
 
+        self.max_seq_len = max_len
+
 class TrainingConfig:
     """Configuration class for training parameters.
     
@@ -58,7 +60,6 @@ class TrainingConfig:
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.max_len = max_len
-        self.block_size = block_size
 
 class MLAConfig(Config):
     """Configuration class for MLA (Multi-Linear Attention) model.
