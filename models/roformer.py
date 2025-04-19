@@ -74,13 +74,14 @@ class RoFormerForCausalLM(nn.Module):
         logits = self.lm_head(hidden) # [batch_size, sequence_length, vocab_size]
         loss = None
 
-        batch_size, sequence_length, vocab_size = logits.size()
-
         if labels is not None:
             # Flatten the logits and labels for cross entropy loss
+            shift_logits = logits[:, :-1, :].contiguous()
+            shift_labels = labels[:, 1:].contiguous()
             loss = F.cross_entropy(
-                logits.view(batch_size * sequence_length, vocab_size),
-                labels.view(batch_size * sequence_length))
+                    shift_logits.view(-1, logits.size(-1)),
+                    shift_labels.view(-1),
+                    ignore_index=-100)
             # This flattening is necessary because PyTorch's cross_entropy expects:
             # Input (logits): [N, C] where N is number of samples and C is number of classes
             # Target (labels): [N] where each value is the correct class index
