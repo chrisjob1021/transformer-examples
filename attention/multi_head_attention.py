@@ -23,7 +23,7 @@ class SingleHead(nn.Module):
         self.rope = None
         if config.rope:
             self.rope = RotaryPositionalEncoding(config)
-    
+        
     def forward(self, q, k, v):
         K = self.W_K(k)
         Q = self.W_Q(q)
@@ -76,7 +76,9 @@ class MultiHeadAttention(nn.Module):
         attn_scores = Q @ K.transpose(-2, -1)
         # config.per_head_dim + config.per_head_dim is accounting for RoPE
         # dh + dRh, which in our case are both equal to per_head_dim
-        attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
+        # attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
+        attn_scores = attn_scores / np.sqrt(self.config.per_head_dim)
+
         
         # Use causal mask
         attn_scores = attn_scores.masked_fill(causal_mask, float("-inf"))
