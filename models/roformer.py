@@ -29,11 +29,11 @@ class RoFormerEncoderLayer(nn.Module):
         self.dropout2 = nn.Dropout(config.dropout)
         self.ln2 = nn.LayerNorm(config.d_model)
 
-    def forward(self, x, mask=None):
+    def forward(self, x):
         batch_size, seq_len = x.shape[0], x.shape[1]
         x_reshaped = x.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
-        attn_output = self.self_attn(q=x_reshaped, k=x_reshaped, v=x_reshaped, mask=mask)
+        attn_output = self.self_attn(q=x_reshaped, k=x_reshaped, v=x_reshaped)
         attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
 
         x = x + self.dropout1(attn_output)
@@ -53,12 +53,12 @@ class RoFormerEncoder(nn.Module):
         self.layers = nn.ModuleList([RoFormerEncoderLayer(config) for _ in range(config.num_layers)])
         self.dropout = nn.Dropout(config.dropout)
 
-    def forward(self, input_ids, mask=None):
+    def forward(self, input_ids):
         x = self.embeddings(input_ids)
         x = self.dropout(x)
 
         for layer in self.layers:
-            x = layer(x, mask)
+            x = layer(x)
             
         return x
 
@@ -69,8 +69,8 @@ class RoFormerForCausalLM(nn.Module):
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
         self.lm_head.weight = backbone.embeddings.weight # tie weights between lm head and embeddings
 
-    def forward(self, input_ids, attention_mask=None, labels=None):
-        hidden = self.backbone(input_ids, attention_mask)
+    def forward(self, input_ids, labels=None):
+        hidden = self.backbone(input_ids)
         logits = self.lm_head(hidden) # [batch_size, sequence_length, vocab_size]
         loss = None
 

@@ -38,10 +38,28 @@ class MultiHeadAttention(nn.Module):
 
         self.W_O = W_O
 
-    def forward(self, q, k, v, mask=None):
+    def forward(self, q, k, v):
         batch_size, num_heads, seq_len, per_head_dim = q.shape
         
         # Create causal mask
+        # First, torch.ones(4, 4) creates a 4x4 matrix of ones:
+        # 1 1 1 1
+        # 1 1 1 1
+        # 1 1 1 1
+        # 1 1 1 1
+
+        # Then, torch.triu(..., diagonal=1) creates a mask with ones above the diagonal:
+        # 0 1 1 1
+        # 0 0 1 1
+        # 0 0 0 1
+        # 0 0 0 0
+        
+        # The .bool() converts the mask to a boolean tensor where True indicates a masked position.
+        # The .unsqueeze(0).unsqueeze(0) adds two dimensions to the mask, making it a 4D tensor:
+        # [[[False True True True],
+        #   [False False True True],
+        #   [False False False True],
+        #   [False False False False]]]
         causal_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
         causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, seq_len]
         causal_mask = causal_mask.to(q.device)
@@ -79,8 +97,17 @@ class MultiHeadAttention(nn.Module):
         # attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
         attn_scores = attn_scores / np.sqrt(self.config.per_head_dim)
 
-        
         # Use causal mask
+        # When this mask is used with masked_fill(causal_mask, float("-inf")), 
+        # it sets all True values to negative infinity. 
+        # In the attention mechanism, this effectively means:
+        #   Position 0 can only attend to position 0
+        #   Position 1 can attend to positions 0 and 1
+        #   Position 2 can attend to positions 0, 1, and 2
+        #   Position 3 can attend to positions 0, 1, 2, and 3
+        # This creates the causal (autoregressive) property where each token can only attend to itself
+        # and previous tokens, which is crucial for tasks like language modeling 
+        # where you want to prevent the model from "seeing into the future" during training and inference.
         attn_scores = attn_scores.masked_fill(causal_mask, float("-inf"))
         
         attn_probs = torch.softmax(attn_scores, dim=-1)
