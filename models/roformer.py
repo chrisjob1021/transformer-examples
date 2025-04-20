@@ -98,23 +98,22 @@ class RoFormerForCausalLM(nn.Module):
         config = Config(**cfg_dict)
 
         # ── 2. instantiate model skeleton ────────────────────────
-        backbone = RoFormerEncoder(
-            vocab_size=config.vocab_size,
-            d_model=config.d_model,
-            num_heads=config.num_heads,
-            ff_dim=config.ff_dim,
-            num_layers=config.num_layers,
-            max_seq_len=config.max_seq_len,
-            dropout=config.dropout,
-        )
+        backbone = RoFormerEncoder(config)
         model = cls(backbone, config)
-
-        # Weight‑tying must already be done in __init__()
-        # (lm_head.weight <- backbone.embeddings.weight)
-
+        
         # ── 3. load weights ──────────────────────────────────────
+        # Find all checkpoint files in the directory
+        checkpoint_dirs = [d for d in os.listdir(path) if d.startswith("checkpoint-")]
+        if not checkpoint_dirs:
+            raise FileNotFoundError(f"No checkpoint files found in {path}")
+        
+        # Sort by checkpoint number to get the highest checkpoint
+        latest_checkpoint = sorted(checkpoint_dirs, key=lambda x: int(x.split('-')[1]))[-1]
+        print(f"Loading checkpoint: {latest_checkpoint}")
+        checkpoint_path = os.path.join(path, latest_checkpoint, "pytorch_model.bin")
+        
         state_dict = torch.load(
-            os.path.join(path, "pytorch_model.bin"),
+            checkpoint_path,
             map_location=map_location,
         )
         if dtype is not None:
@@ -127,7 +126,7 @@ class RoFormerForCausalLM(nn.Module):
 
         return model
 
-    def forward(self, input_ids, labels=None):
+    def forward(self, input_ids, attention_mask=None, labels=None):
         hidden = self.backbone(input_ids)
         logits = self.lm_head(hidden) # [batch_size, sequence_length, vocab_size]
         loss = None

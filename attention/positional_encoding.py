@@ -29,12 +29,12 @@ class AbsolutePositionalEncoding(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
 
-        self.max_len = config.max_len
+        self.max_seq_len = config.max_seq_len
         self.d_model = config.d_model
         self.dropout = nn.Dropout(config.dropout)
 
-        pe = torch.zeros(self.max_len, self.d_model)
-        pos_within_vector = torch.arange(0, self.max_len, dtype=float).unsqueeze(1)
+        pe = torch.zeros(self.max_seq_len, self.d_model)
+        pos_within_vector = torch.arange(0, self.max_seq_len, dtype=float).unsqueeze(1)
         every_other_dim = torch.arange(0, self.d_model, 2, dtype=float)
         '''
         a = 2i/dim
