@@ -62,12 +62,70 @@ class RoFormerEncoder(nn.Module):
             
         return x
 
+import os
+import json
+from typing import Union
+
 class RoFormerForCausalLM(nn.Module):
     def __init__(self, backbone: RoFormerEncoder, config: Config):
         super().__init__()
         self.backbone = backbone
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
         self.lm_head.weight = backbone.embeddings.weight # tie weights between lm head and embeddings
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        path: Union[str, os.PathLike],
+        map_location: str = "cpu",
+        strict: bool = True,
+        dtype: torch.dtype = None,
+        **override_config,          # let caller tweak e.g. dropout=0
+    ):
+        """
+        Args
+        ----
+        path (str): directory containing `config.json` and `pytorch_model.bin`
+        map_location: passed to `torch.load`
+        strict: forward to `load_state_dict`
+        dtype: if set, casts the loaded state‑dict (`torch.float16`, `bfloat16`, …)
+        override_config: key‑value pairs to overwrite fields in the JSON config
+        """
+        # ── 1. load and merge config ─────────────────────────────
+        with open(os.path.join(path, "config.json")) as f:
+            cfg_dict = json.load(f)
+        cfg_dict.update(override_config)               # user overrides
+        config = Config(**cfg_dict)
+
+        # ── 2. instantiate model skeleton ────────────────────────
+        backbone = RoFormerEncoder(
+            vocab_size=config.vocab_size,
+            d_model=config.d_model,
+            num_heads=config.num_heads,
+            ff_dim=config.ff_dim,
+            num_layers=config.num_layers,
+            max_seq_len=config.max_seq_len,
+            dropout=config.dropout,
+        )
+        model = cls(backbone, config)
+
+        # Weight‑tying must already be done in __init__()
+        # (lm_head.weight <- backbone.embeddings.weight)
+
+        # ── 3. load weights ──────────────────────────────────────
+        state_dict = torch.load(
+            os.path.join(path, "pytorch_model.bin"),
+            map_location=map_location,
+        )
+        if dtype is not None:
+            # cast every tensor to desired dtype *before* loading
+            state_dict = {k: v.to(dtype) for k, v in state_dict.items()}
+
+        missing, unexpected = model.load_state_dict(state_dict, strict=strict)
+        if strict and (missing or unexpected):
+            raise RuntimeError(f"load_state_dict() missing={missing} unexpected={unexpected}")
+
+        return model
 
     def forward(self, input_ids, labels=None):
         hidden = self.backbone(input_ids)
