@@ -38,7 +38,7 @@ class MultiHeadAttention(nn.Module):
 
         self.W_O = W_O
 
-    def forward(self, q, k, v):
+    def forward(self, q, k, v, attention_mask=None):
         batch_size, num_heads, seq_len, per_head_dim = q.shape
         
         # Create causal mask
@@ -97,6 +97,21 @@ class MultiHeadAttention(nn.Module):
         # attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
         attn_scores = attn_scores / np.sqrt(self.config.per_head_dim)
 
+        if attention_mask is not None:
+            # Convert 0's to -inf and 1's to 0 in attention mask
+            # attention_mask shape: [batch_size, seq_len] of 1's and 0's
+            # Need to: 
+            # 1. Convert 0's to -inf and 1's to 0
+            # 2. Unsqueeze to add head dimension
+            # 3. Expand mask for broadcasting
+            attention_mask = (1.0 - attention_mask) * float("-inf")
+            attention_mask = attention_mask.unsqueeze(1)  # [batch_size, 1, seq_len]
+            attention_mask = attention_mask.unsqueeze(2)  # [batch_size, 1, 1, seq_len]
+            attn_scores = attn_scores + attention_mask
+        
+        print(attn_scores[0])
+        print(attn_scores[-1])
+
         # Use causal mask
         # When this mask is used with masked_fill(causal_mask, float("-inf")), 
         # it sets all True values to negative infinity. 
@@ -109,6 +124,8 @@ class MultiHeadAttention(nn.Module):
         # and previous tokens, which is crucial for tasks like language modeling 
         # where you want to prevent the model from "seeing into the future" during training and inference.
         attn_scores = attn_scores.masked_fill(causal_mask, float("-inf"))
+        print(attn_scores[0])
+        print(attn_scores[-1])
         
         attn_probs = torch.softmax(attn_scores, dim=-1)
         o = attn_probs @ V
