@@ -7,6 +7,7 @@ Attention Is All You Need. arXiv:1706.03762
 from torch import nn
 import torch
 import numpy as np
+from positional_encoding import RotaryPositionalEncoding
 
 class SingleHead(nn.Module):
     def __init__(self, config):
