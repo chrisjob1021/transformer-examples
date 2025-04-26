@@ -30,8 +30,7 @@ class MultiHeadAttention(nn.Module):
         self.W_O = W_O
 
     def forward(self, x, attention_mask=None):
-        batch_size, seq_len, d_model = x.shape
-        debugpy.breakpoint()
+        batch_size, seq_len = x.size(0), x.size(1)
 
         q_proj = self.W_Q(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
         k_proj = self.W_K(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
@@ -85,12 +84,22 @@ class MultiHeadAttention(nn.Module):
         # where you want to prevent the model from "seeing into the future" during training and inference.
         qk = qk.masked_fill(causal_mask, float("-inf"))
         
-        attn_scores = torch.softmax(qk, dim=-1)
-        attn_scores = attn_scores @ v_proj
+        # attn_probs.shape == [batch_size, num_heads, seq_len, seq_len]
+        attn_probs = torch.softmax(qk, dim=-1) # e.g. attn_probs[0][0][1] = first batch item, first head, second query position
+        # v_proj.shape == [batch_size, num_heads, seq_len, per_head_dim]
+        attn_scores = attn_probs @ v_proj # e.g. output = attn_probs[0][0][1][0] * v_proj[..., 0, :] + attn_probs[0][0][1][1] * v_proj[..., 1, :]
+        # later positions are masked out
+        # attn_scores.shape == [batch_size, num_heads, seq_len, per_head_dim]
+        # e.g. attn_scores[0][0][1]
+        # then for each:
+        #   batch (which input in the batch)
+        #   head (which attention head)
+        #   query position (which token is querying)
+        #   feature (which dimension of the value vector)
 
         debugpy.breakpoint()
         o = attn_scores.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
         
         u = self.W_O(o)
 
-        return u, 
+        return u, attn_scores
