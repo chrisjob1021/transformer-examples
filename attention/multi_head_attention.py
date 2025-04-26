@@ -36,7 +36,7 @@ class MultiHeadAttention(nn.Module):
         k_proj = self.W_K(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
         v_proj = self.W_V(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
-        qk = q_proj @ k_proj.transpose(-2, -1)
+        qk = q_proj @ k_proj.transpose(-2, -1).to(q_proj.device)
         qk = qk / np.sqrt(self.config.per_head_dim)
 
         if attention_mask is not None:
@@ -47,6 +47,7 @@ class MultiHeadAttention(nn.Module):
             attention_mask = attention_mask.unsqueeze(0)  # [1, 1, seq_len]
             attention_mask = attention_mask.unsqueeze(0)  # [1, 1, 1, seq_len]
             attention_mask = attention_mask.expand(batch_size, self.config.num_heads, seq_len, seq_len)  # [batch_size, num_heads, seq_len, seq_len]
+            attention_mask = attention_mask.to(qk.device)  # Move to same device as qk
             qk = qk.masked_fill(attention_mask == 0, float("-inf"))
 
         # Create causal mask
@@ -70,6 +71,7 @@ class MultiHeadAttention(nn.Module):
         #   [False False False False]]]
         causal_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
         causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, seq_len]
+        causal_mask = causal_mask.to(qk.device)  # Move to same device as qk
 
         # Use causal mask
         # When this mask is used with masked_fill(causal_mask, float("-inf")), 
