@@ -7,41 +7,49 @@ Attention Is All You Need. arXiv:1706.03762
 from torch import nn
 import torch
 import numpy as np
-from positional_encoding import RotaryPositionalEncoding
-
-class SingleHead(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-
-        # Input dimension depends on whether RoPE is enabled
-        input_dim = config.per_head_dim * 2 if config.rope else config.per_head_dim
-        
-        # Adjust linear layer input dimensions based on RoPE setting
-        self.W_K = nn.Linear(input_dim, config.per_head_dim)
-        self.W_Q = nn.Linear(input_dim, config.per_head_dim)
-        self.W_V = nn.Linear(config.per_head_dim, config.per_head_dim)
-        
-        self.rope = None
-        if config.rope:
-            self.rope = RotaryPositionalEncoding(config)
-        
-    def forward(self, q, k, v):
-        K = self.W_K(k)
-        Q = self.W_Q(q)
-        V = self.W_V(v)
-        return K, Q, V
+from attention.positional_encoding import RotaryPositionalEncoding
+import debugpy
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, config, W_O):
         super().__init__()
         self.config = config
-        self.heads = nn.ModuleList([SingleHead(config) for _ in range(config.num_heads)])
+
+        # # Input dimension depends on whether RoPE is enabled
+        # input_dim = config.per_head_dim * 2 if config.rope else config.per_head_dim
+        
+        # Adjust linear layer input dimensions based on RoPE setting
+        self.W_K = nn.Linear(config.d_model, config.d_model)
+        self.W_Q = nn.Linear(config.d_model, config.d_model)
+        self.W_V = nn.Linear(config.d_model, config.d_model)
+        
+        self.rope = None
+        if config.rope:
+            self.rope = RotaryPositionalEncoding(config)
 
         self.W_O = W_O
 
-    def forward(self, q, k, v, attention_mask=None):
-        batch_size, num_heads, seq_len, per_head_dim = q.shape
-        
+    def forward(self, x, attention_mask=None):
+        batch_size, seq_len, d_model = x.shape
+        debugpy.breakpoint()
+
+        q_proj = self.W_Q(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+        k_proj = self.W_K(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+        v_proj = self.W_V(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+
+        qk = q_proj @ k_proj.transpose(-2, -1)
+        qk = qk / np.sqrt(self.config.per_head_dim)
+
+        if attention_mask is not None:
+            # attention_mask shape: [seq_len] of 1's and 0's
+            # Convert to proper attention mask matrix where:
+            # - if mask[j] = 0, position j should be masked out for all queries
+            attention_mask = attention_mask.unsqueeze(0)  # [1, seq_len]
+            attention_mask = attention_mask.unsqueeze(0)  # [1, 1, seq_len]
+            attention_mask = attention_mask.unsqueeze(0)  # [1, 1, 1, seq_len]
+            attention_mask = attention_mask.expand(batch_size, self.config.num_heads, seq_len, seq_len)  # [batch_size, num_heads, seq_len, seq_len]
+            qk = qk.masked_fill(attention_mask == 0, float("-inf"))
+
         # Create causal mask
         # First, torch.ones(4, 4) creates a 4x4 matrix of ones:
         # 1 1 1 1
@@ -63,55 +71,6 @@ class MultiHeadAttention(nn.Module):
         #   [False False False False]]]
         causal_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
         causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, seq_len]
-        causal_mask = causal_mask.to(q.device)
-
-        all_K = []
-        all_Q = []
-        all_V = []
-
-        for head_idx, head in enumerate(self.heads):
-            K_new, Q_new, V_new = head(q[:, head_idx], k[:, head_idx], v[:, head_idx])
-
-            K_new = K_new.unsqueeze(1)
-            Q_new = Q_new.unsqueeze(1)
-            V_new = V_new.unsqueeze(1)
-
-            all_K.append(K_new)
-            all_Q.append(Q_new)
-            all_V.append(V_new)
-        
-        all_K = torch.cat(all_K, dim=1)
-        all_Q = torch.cat(all_Q, dim=1)
-        all_V = torch.cat(all_V, dim=1)
-
-        K = all_K
-        V = all_V
-        Q = torch.cat([all_Q], dim=-2)
-
-        if self.config.rope:
-            Q = self.rope(Q)
-            K = self.rope(K)
-
-        attn_scores = Q @ K.transpose(-2, -1)
-        # config.per_head_dim + config.per_head_dim is accounting for RoPE
-        # dh + dRh, which in our case are both equal to per_head_dim
-        # attn_scores = attn_scores / np.sqrt(self.config.per_head_dim + self.config.per_head_dim)
-        attn_scores = attn_scores / np.sqrt(self.config.per_head_dim)
-
-        if attention_mask is not None:
-            # Convert 0's to -inf and 1's to 0 in attention mask
-            # attention_mask shape: [batch_size, seq_len] of 1's and 0's
-            # Need to: 
-            # 1. Convert 0's to -inf and 1's to 0
-            # 2. Unsqueeze to add head dimension
-            # 3. Expand mask for broadcasting
-            attention_mask = (1.0 - attention_mask) * float("-inf")
-            attention_mask = attention_mask.unsqueeze(1)  # [batch_size, 1, seq_len]
-            attention_mask = attention_mask.unsqueeze(2)  # [batch_size, 1, 1, seq_len]
-            attn_scores = attn_scores + attention_mask
-        
-        print(attn_scores[0])
-        print(attn_scores[-1])
 
         # Use causal mask
         # When this mask is used with masked_fill(causal_mask, float("-inf")), 
@@ -124,16 +83,14 @@ class MultiHeadAttention(nn.Module):
         # This creates the causal (autoregressive) property where each token can only attend to itself
         # and previous tokens, which is crucial for tasks like language modeling 
         # where you want to prevent the model from "seeing into the future" during training and inference.
-        attn_scores = attn_scores.masked_fill(causal_mask, float("-inf"))
-        print(attn_scores[0])
-        print(attn_scores[-1])
+        qk = qk.masked_fill(causal_mask, float("-inf"))
         
-        attn_probs = torch.softmax(attn_scores, dim=-1)
-        o = attn_probs @ V
+        attn_scores = torch.softmax(qk, dim=-1)
+        attn_scores = attn_scores @ v_proj
 
-        batch_size, n_heads, seq_len, per_head_dim = o.shape
-        o = o.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
+        debugpy.breakpoint()
+        o = attn_scores.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
         
         u = self.W_O(o)
 
-        return u
+        return u, 

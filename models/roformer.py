@@ -3,6 +3,7 @@ import torch.nn as nn
 from utils import Config
 import torch
 import torch.nn.functional as F
+import debugpy
 
 class RoFormerEncoderLayer(nn.Module):
     def __init__(self, config: Config):
@@ -30,11 +31,10 @@ class RoFormerEncoderLayer(nn.Module):
         self.ln2 = nn.LayerNorm(config.d_model)
 
     def forward(self, x, attention_mask=None):
-        batch_size, seq_len = x.shape[0], x.shape[1]
-        x_reshaped = x.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+        # batch_size, seq_len = x.shape[0], x.shape[1]
 
-        attn_output = self.self_attn(q=x_reshaped, k=x_reshaped, v=x_reshaped, attention_mask=attention_mask)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
+        attn_output = self.self_attn(x, attention_mask=attention_mask)
+        # attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
 
         x = x + self.dropout1(attn_output)
         x = self.ln1(x)
@@ -92,7 +92,11 @@ class RoFormerForCausalLM(nn.Module):
         override_config: key‑value pairs to overwrite fields in the JSON config
         """
         # ── 1. load and merge config ─────────────────────────────
-        with open(os.path.join(path, "config.json")) as f:
+        config_path = os.path.join(path, "config.json")
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Config file not found at {config_path}")
+            
+        with open(config_path) as f:
             cfg_dict = json.load(f)
         cfg_dict.update(override_config)               # user overrides
         config = Config(**cfg_dict)
