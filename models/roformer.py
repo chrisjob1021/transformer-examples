@@ -67,11 +67,14 @@ import json
 from typing import Union
 
 class RoFormerForCausalLM(nn.Module):
+    def _tie_weights(self):
+        self.lm_head.weight = self.backbone.embeddings.weight
+
     def __init__(self, backbone: RoFormerEncoder, config: Config):
         super().__init__()
         self.backbone = backbone
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
-        self.lm_head.weight = backbone.embeddings.weight # tie weights between lm head and embeddings
+        self._tie_weights()
 
     @classmethod
     def from_pretrained(
@@ -125,6 +128,9 @@ class RoFormerForCausalLM(nn.Module):
             state_dict = {k: v.to(dtype) for k, v in state_dict.items()}
 
         missing, unexpected = model.load_state_dict(state_dict, strict=strict)
+        model._tie_weights()
+
+        # Check if the model is tied
         if strict and (missing or unexpected):
             raise RuntimeError(f"load_state_dict() missing={missing} unexpected={unexpected}")
 
