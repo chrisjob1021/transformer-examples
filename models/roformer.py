@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import debugpy
 
-class RoFormerEncoderLayer(nn.Module):
+class RoFormerDecoderLayer(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
         self.config = config
@@ -44,13 +44,13 @@ class RoFormerEncoderLayer(nn.Module):
         x = self.ln2(x)
         return x
 
-class RoFormerEncoder(nn.Module):
+class RoFormerDecoder(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
         self.config = config
 
         self.embeddings = nn.Embedding(config.vocab_size, config.d_model)
-        self.layers = nn.ModuleList([RoFormerEncoderLayer(config) for _ in range(config.num_layers)])
+        self.layers = nn.ModuleList([RoFormerDecoderLayer(config) for _ in range(config.num_layers)])
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, input_ids, attention_mask=None):
@@ -70,7 +70,7 @@ class RoFormerForCausalLM(nn.Module):
     def _tie_weights(self):
         self.lm_head.weight = self.backbone.embeddings.weight
 
-    def __init__(self, backbone: RoFormerEncoder, config: Config):
+    def __init__(self, backbone: RoFormerDecoder, config: Config):
         super().__init__()
         self.backbone = backbone
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
@@ -105,7 +105,7 @@ class RoFormerForCausalLM(nn.Module):
         config = Config(**cfg_dict)
 
         # ── 2. instantiate model skeleton ────────────────────────
-        backbone = RoFormerEncoder(config)
+        backbone = RoFormerDecoder(config)
         model = cls(backbone, config)
         
         # ── 3. load weights ──────────────────────────────────────
