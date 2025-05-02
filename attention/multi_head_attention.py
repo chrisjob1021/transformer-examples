@@ -30,16 +30,32 @@ class MultiHeadAttention(nn.Module):
         self.W_O = W_O
 
     def forward(self, x, attention_mask=None):
+        if x.device.type == 'cpu':
+            raise RuntimeError("Input tensor 'x' is on CPU but should be on GPU")
+            
         batch_size, seq_len = x.size(0), x.size(1)
 
         q_proj = self.W_Q(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
         k_proj = self.W_K(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
         v_proj = self.W_V(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
+        if q_proj.device.type == 'cpu':
+            raise RuntimeError("Query projection tensor is on CPU but should be on GPU")
+        if k_proj.device.type == 'cpu':
+            raise RuntimeError("Key projection tensor is on CPU but should be on GPU")
+        if v_proj.device.type == 'cpu':
+            raise RuntimeError("Value projection tensor is on CPU but should be on GPU")
+
         qk = q_proj @ k_proj.transpose(-2, -1).to(q_proj.device)
         qk = qk / np.sqrt(self.config.per_head_dim)
 
+        if qk.device.type == 'cpu':
+            raise RuntimeError("QK attention tensor is on CPU but should be on GPU")
+
         if attention_mask is not None:
+            if attention_mask.device.type == 'cpu':
+                raise RuntimeError("Attention mask tensor is on CPU but should be on GPU")
+                
             # attention_mask shape: [seq_len] of 1's and 0's
             # Convert to proper attention mask matrix where:
             # - if mask[j] = 0, position j should be masked out for all queries
@@ -88,8 +104,16 @@ class MultiHeadAttention(nn.Module):
         
         # attn_probs.shape == [batch_size, num_heads, seq_len, seq_len]
         attn_probs = torch.softmax(qk, dim=-1) # e.g. attn_probs[0][0][1] = first batch item, first head, second query position
+        
+        if attn_probs.device.type == 'cpu':
+            raise RuntimeError("Attention probabilities tensor is on CPU but should be on GPU")
+            
         # v_proj.shape == [batch_size, num_heads, seq_len, per_head_dim]
         attn_scores = attn_probs @ v_proj # e.g. output = attn_probs[0][0][1][0] * v_proj[..., 0, :] + attn_probs[0][0][1][1] * v_proj[..., 1, :]
+        
+        if attn_scores.device.type == 'cpu':
+            raise RuntimeError("Attention scores tensor is on CPU but should be on GPU")
+            
         # later positions are masked out
         # attn_scores.shape == [batch_size, num_heads, seq_len, per_head_dim]
         # e.g. attn_scores[0][0][1]
@@ -102,6 +126,12 @@ class MultiHeadAttention(nn.Module):
         debugpy.breakpoint()
         o = attn_scores.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
         
+        if o.device.type == 'cpu':
+            raise RuntimeError("Output tensor 'o' is on CPU but should be on GPU")
+            
         u = self.W_O(o)
+        
+        if u.device.type == 'cpu':
+            raise RuntimeError("Final output tensor 'u' is on CPU but should be on GPU")
 
-        return u, attn_scores
+        return u

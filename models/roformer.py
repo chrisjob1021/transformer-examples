@@ -31,15 +31,25 @@ class RoFormerDecoderLayer(nn.Module):
         self.ln2 = nn.LayerNorm(config.d_model)
 
     def forward(self, x, attention_mask=None):
+        # Check if tensors are on CPU
+        if x.device.type == 'cpu':
+            raise RuntimeError("Input tensor 'x' is on CPU but should be on GPU")
+        
         # batch_size, seq_len = x.shape[0], x.shape[1]
 
         attn_output = self.self_attn(x, attention_mask=attention_mask)
         # attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, seq_len, self.config.d_model)
 
+        if attn_output.device.type == 'cpu':
+            raise RuntimeError("Attention output tensor is on CPU but should be on GPU")
+
         x = x + self.dropout1(attn_output)
         x = self.ln1(x)
 
         ffn_output = self.ffn(x)
+        if ffn_output.device.type == 'cpu':
+            raise RuntimeError("FFN output tensor is on CPU but should be on GPU")
+            
         x = x + self.dropout2(ffn_output)
         x = self.ln2(x)
         return x
@@ -54,6 +64,11 @@ class RoFormerDecoder(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, input_ids, attention_mask=None):
+        if input_ids.device.type == 'cpu':
+            raise RuntimeError("Input tensor 'input_ids' is on CPU but should be on GPU")
+        if attention_mask is not None and attention_mask.device.type == 'cpu':
+            raise RuntimeError("Attention mask tensor is on CPU but should be on GPU")
+            
         x = self.embeddings(input_ids)
         x = self.dropout(x)
 
@@ -88,7 +103,7 @@ class RoFormerForCausalLM(nn.Module):
         """
         Args
         ----
-        path (str): directory containing `config.json` and `pytorch_model.bin`
+        path (str): directory containing `config.json` and `pytorch_model.bin`
         map_location: passed to `torch.load`
         strict: forward to `load_state_dict`
         dtype: if set, casts the loaded state‑dict (`torch.float16`, `bfloat16`, …)
@@ -137,8 +152,21 @@ class RoFormerForCausalLM(nn.Module):
         return model
 
     def forward(self, input_ids, attention_mask=None, labels=None):
-        hidden = self.backbone(input_ids, attention_mask)
+        if input_ids.device.type == 'cpu':
+            raise RuntimeError("Input tensor 'input_ids' is on CPU but should be on GPU")
+        if attention_mask is not None and attention_mask.device.type == 'cpu':
+            raise RuntimeError("Attention mask tensor is on CPU but should be on GPU")
+        if labels is not None and labels.device.type == 'cpu':
+            raise RuntimeError("Labels tensor is on CPU but should be on GPU")
+            
+        hidden = self.backbone(input_ids)
+        if hidden.device.type == 'cpu':
+            raise RuntimeError("Hidden state tensor is on CPU but should be on GPU")
+            
         logits = self.lm_head(hidden) # [batch_size, sequence_length, vocab_size]
+        if logits.device.type == 'cpu':
+            raise RuntimeError("Logits tensor is on CPU but should be on GPU")
+            
         loss = None
 
         if labels is not None:
@@ -153,4 +181,5 @@ class RoFormerForCausalLM(nn.Module):
             # Input (logits): [N, C] where N is number of samples and C is number of classes
             # Target (labels): [N] where each value is the correct class index
 
+        debugpy.breakpoint()
         return {"loss": loss, "logits": logits}
