@@ -7,7 +7,7 @@ setup(
     author="Chris O'Brien",
     author_email="chris@chrisobrien.ai",
     packages=find_packages(include=['models', 'models.*', 'attention', 'attention.*', 'utils', 'utils.*']),
-    python_requires=">=3.12",
+    python_requires=">=3.10",
     install_requires=[
         "torch>=2.0.0",
         "transformers>=4.30.0",
