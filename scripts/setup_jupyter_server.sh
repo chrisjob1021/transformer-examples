@@ -76,13 +76,8 @@ sudo systemctl enable jupyter.service
 
 echo "Jupyter server setup complete!"
 echo "The Jupyter server has been configured to run as a systemd service."
-echo "To start the server: sudo systemctl start jupyter"
+echo 
 echo "To check status: sudo systemctl status jupyter"
 echo "To stop the server: sudo systemctl stop jupyter"
 echo "Access the server at http://localhost:8888 or http://<your-ip>:8888"
 echo "WARNING: Server is configured to run without password protection. This is not recommended for production environments."
-
-
-
-# Deactivate the virtual environment
-deactivate

@@ -5,11 +5,23 @@ set -e
 
 echo "Creating Python virtual environment..."
 
-# Check if python3 is installed
+# Check if Python 3.12 or greater is installed
 if ! command -v python3 &> /dev/null; then
     echo "Error: python3 is not installed. Please install Python 3 first."
     exit 1
 fi
+
+# Check Python version
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+REQUIRED_VERSION="3.12"
+
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+    echo "Error: Python version $REQUIRED_VERSION or greater is required. Found version $PYTHON_VERSION."
+    echo "Please install Python $REQUIRED_VERSION or greater."
+    exit 1
+fi
+
+echo "Found Python $PYTHON_VERSION, which meets the requirement (>= $REQUIRED_VERSION)."
 
 # Define the virtual environment directory
 VENV_DIR="venv"
@@ -53,4 +65,4 @@ else
     echo "No requirements.txt file found. Skipping package installation."
 fi
 
-echo "Done! You can now install packages in your virtual environment."
+echo "Done!"
