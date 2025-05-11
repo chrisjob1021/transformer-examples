@@ -91,7 +91,7 @@ torch-tb-profiler==0.4.3
 tornado==6.4.2
 tqdm==4.67.1
 traitlets==5.14.3
--e git+ssh://git@github.com/chrisjob1021/transformer-examples.git@aaa2bf6a6724b0a9e50a60a370ad45addd6c2b3a#egg=transformer_examples
+-e git+ssh://git@github.com/chrisjob1021/transformer-examples.git@2f96cec97e97cfef25f8192705285040d294dcf2#egg=transformer_examples
 transformers==4.51.3
 triton==3.2.0
 typing_extensions==4.12.2
