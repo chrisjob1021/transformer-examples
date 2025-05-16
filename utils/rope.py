@@ -31,9 +31,9 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
     #    where d is the total head dimension. We exponentiate freq in the negative direction.
     #    shape: (seq_len, per_head_dim//2)
     theta = positions.unsqueeze(1) * (freq ** (-2 * dim_idx / per_head_dim))
-    # if debug:
-    #     print("theta.shape", theta.shape)
-    #     print("theta", theta)
+    if debug:
+        print("theta.shape", theta.shape)
+        print("theta", theta)
 
     # 5) Compute sin and cos for all positions and dimensions
     #    shape: both are (seq_len, per_head_dim//2)
@@ -46,11 +46,11 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
     #    from (seq_len, per_head_dim//2) -> (1, 1, seq_len, per_head_dim//2)
     cos_theta = cos_theta.unsqueeze(0).unsqueeze(1)
     sin_theta = sin_theta.unsqueeze(0).unsqueeze(1)
-    # if debug:
-    #     print("cos_theta.shape", cos_theta.shape)
-    #     print("cos_theta", cos_theta)
-    #     print("sin_theta.shape", sin_theta.shape)
-    #     print("sin_theta", sin_theta)
+    if debug:
+        print("cos_theta.shape", cos_theta.shape)
+        print("cos_theta", cos_theta)
+        print("sin_theta.shape", sin_theta.shape)
+        print("sin_theta", sin_theta)
 
     # 7) Reshape x so we can work with the final dimension as pairs: (..., 2)
     #    shape: (batch_size, n_heads, seq_len, per_head_dim//2, 2)
@@ -213,14 +213,14 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
     # 9) Re-combine the rotated pairs into the last dimension
     #    shape still: (batch_size, seq_len, n_heads, per_head_dim // 2, 2)
     x_rotated = torch.stack([x_rotated_even, x_rotated_odd], dim=-1)
-    if debug:
-        print("x_rotated.shape", x_rotated.shape)
-        # print("x_rotated", x_rotated[0, 0, :1])
+    # if debug:
+    #     print("x_rotated.shape", x_rotated.shape)
+    #     # print("x_rotated", x_rotated[0, 0, :1])
 
     # # 10) Reshape x_rotated to match the original shape
     # #    shape: (batch_size, seq_len, n_heads, per_head_dim)
     x_rotated = x_rotated.view(batch_size, n_heads, seq_len, per_head_dim)
-    if debug:
-        print("x_rotated", x_rotated[0, 0, :1])
+    # if debug:
+    #     print("x_rotated", x_rotated[0, 0, :1])
     return x_rotated
 
