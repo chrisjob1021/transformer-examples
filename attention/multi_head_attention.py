@@ -29,12 +29,15 @@ class MultiHeadAttention(nn.Module):
 
         self.W_O = W_O
 
-    def forward(self, q_proj, k_proj, v_proj, attention_mask=None):
-        batch_size, seq_len = x.size(0), x.size(1)
+    def forward(self, h, k_proj=None, v_proj=None, multi_input_vector=False, attention_mask=None):
+        batch_size, seq_len = h.size(0), h.size(1)
 
-        # q_proj = self.W_Q(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
-        # k_proj = self.W_K(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
-        # v_proj = self.W_V(x).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+        if multi_input_vector:
+            h = q_proj
+        else:
+            q_proj = self.W_Q(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+            k_proj = self.W_K(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+            v_proj = self.W_V(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
         qk = q_proj @ k_proj.transpose(-2, -1).to(q_proj.device)
         qk = qk / np.sqrt(self.config.per_head_dim)

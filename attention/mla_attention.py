@@ -83,7 +83,7 @@ class MultiHeadLatentAttention(nn.Module):
 
         v_t = v_C_t 
 
-        out = self.MultiHeadAttention(q_t, k_t, v_t)
+        out = self.MultiHeadAttention(q_t, k_t, v_t, multi_input_vector=True)
         return out, latent_kv_cache, kr_cache
         
 class LatentKVAttention(nn.Module):
