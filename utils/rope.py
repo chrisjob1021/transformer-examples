@@ -207,7 +207,7 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
                 col = dim % cols
                 pos_axes[row, col].axis('off')
             
-            plt.tight_layout()
+            plt.tight_layout(rect=[0, 0, 1, 0.99])
             plt.show()
 
     # 9) Re-combine the rotated pairs into the last dimension

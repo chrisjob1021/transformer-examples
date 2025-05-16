@@ -70,13 +70,26 @@ class MLAConfig(Config):
     
     def __init__(
         self,
+        vocab_size: int,
         d_model: int = 256,
         num_heads: int = 4,
         max_seq_len: int = 1024,
         dropout: float = 0.1,
         rope: bool = False,
+        num_layers: int = 6,
+        per_head_dim: Optional[int] = None,
         ffn_dim: Optional[int] = None
     ) -> None:
-        super().__init__(d_model, num_heads, max_seq_len, dropout, rope, ffn_dim)
+        super().__init__(
+            vocab_size=vocab_size,
+            d_model=d_model,
+            num_heads=num_heads,
+            max_seq_len=max_seq_len,
+            dropout=dropout,
+            rope=rope,
+            num_layers=num_layers,
+            per_head_dim=per_head_dim,
+            ffn_dim=ffn_dim
+        )
         self.d_model_prime_compressed = d_model * num_heads // 16
         self.d_model_compressed = d_model * num_heads // 16

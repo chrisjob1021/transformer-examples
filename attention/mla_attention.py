@@ -62,6 +62,7 @@ class MultiHeadLatentAttention(nn.Module):
         else:
             past_seq_len = 0    
 
+        debugpy.breakpoint()
         k_R_t, kr_cache = self.KR(h, kr_cache)
         batch_size, seq_len, dim = k_C_t.shape
         k_C_t = k_C_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
@@ -70,7 +71,6 @@ class MultiHeadLatentAttention(nn.Module):
 
         batch_size, seq_len, dim = v_C_t.shape
         v_C_t = v_C_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
-
         q_C_t = self.LatentQAttention(h)
 
         batch_size, seq_len, dim = q_C_t.shape
