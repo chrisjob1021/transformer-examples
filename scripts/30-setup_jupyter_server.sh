@@ -37,6 +37,11 @@ if [ -f "$JUPYTER_CONFIG" ]; then
     echo "Backed up existing Jupyter config to ${JUPYTER_CONFIG}.backup"
 fi
 
+# Generate a password for Jupyter
+echo "Setting up password authentication for Jupyter..."
+echo "You will be prompted to create a password for accessing your Jupyter server."
+JUPYTER_PASSWORD=$(python -c "from jupyter_server.auth import passwd; print(passwd())")
+
 # Append server settings to the config file
 cat >> "$JUPYTER_CONFIG" << EOL
 
@@ -44,8 +49,7 @@ cat >> "$JUPYTER_CONFIG" << EOL
 c.NotebookApp.ip = '0.0.0.0'  # Listen on all IPs
 c.NotebookApp.open_browser = False  # Don't open a browser window
 c.NotebookApp.port = 8888  # Port to use
-c.NotebookApp.token = ''  # Disable token authentication
-c.NotebookApp.password = ''  # Disable password authentication
+c.NotebookApp.password = '$JUPYTER_PASSWORD'  # Set password authentication
 EOL
 
 # Create systemd service file
@@ -73,6 +77,7 @@ echo "Installing systemd service..."
 sudo mv $SERVICE_FILE /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable jupyter.service
+sudo systemctl start jupyter.service
 
 echo "Jupyter server setup complete!"
 echo "The Jupyter server has been configured to run as a systemd service."
@@ -80,4 +85,4 @@ echo
 echo "To check status: sudo systemctl status jupyter"
 echo "To stop the server: sudo systemctl stop jupyter"
 echo "Access the server at http://localhost:8888 or http://<your-ip>:8888"
-echo "WARNING: Server is configured to run without password protection. This is not recommended for production environments."
+echo "You will need to enter the password you created to access the Jupyter server."
