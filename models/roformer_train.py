@@ -2,24 +2,31 @@ from datasets import load_dataset
 from transformers import AutoTokenizer
 from utils import TrainingConfig, Config
 import torch
+import os
+import json
+from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
+from models import RoFormerForCausalLM, RoFormerDecoder
+
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2")  # or your custom one
 tokenizer.pad_token = tokenizer.eos_token
 
 training_config = TrainingConfig()
 config = Config(vocab_size=tokenizer.vocab_size,
-d_model=768, num_heads=12, ffn_dim=3072,
-num_layers=12, max_seq_len=tokenizer.model_max_length )
+    d_model=768, num_heads=12, ffn_dim=3072,
+    num_layers=12, max_seq_len=tokenizer.model_max_length )
 
-savepath = "/home/ubuntu/roformer-base"
+# Get the save path from the accelerate CLI arguments or use default
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--output_dir", type=str, default="/home/ubuntu/roformer-base", 
+                    help="Directory to save model checkpoints")
+args, _ = parser.parse_known_args()
+savepath = args.output_dir
 
 # Create a config dictionary for the model
 config_dict = {k: getattr(config, k) for k in vars(config) 
             if not k.startswith('_') and not callable(getattr(config, k))}
-
-# Save the config as JSON
-import os
-import json
 
 # Create directory if it doesn't exist
 if not os.path.exists(savepath):
@@ -38,7 +45,7 @@ print(f"Using device: {device}")
 dataset = load_dataset("chrisjob1021/gpt2_tokenized_concatenated_openwebtext")
 
 # Split the dataset into training and evaluation sets
-train_test_split = lm_dataset.train_test_split(test_size=0.01, seed=42)
+train_test_split = dataset.train_test_split(test_size=0.01, seed=42)
 train_dataset = train_test_split["train"]
 eval_dataset = train_test_split["test"]
 
@@ -47,15 +54,17 @@ print(f"Evaluation dataset size: {len(eval_dataset)}")
 
 tokenizer.pad_token = tokenizer.eos_token
 
-from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
-from models import RoFormerForCausalLM, RoFormerDecoder
-import torch
+# Add command line argument for resuming from checkpoint
+parser.add_argument("--resume", action="store_true", help="Resume training from last checkpoint")
+args, _ = parser.parse_known_args()
 
-if True:
-    # model initialization
+if args.resume and os.path.exists(savepath):
+    print(f"Resuming from checkpoint: {savepath}")
+    model = RoFormerForCausalLM.from_pretrained(savepath)
+else:
+    print("Initializing new model")
     model_base = RoFormerDecoder(config)
     model = RoFormerForCausalLM(model_base, config)
-if False: model = RoFormerForCausalLM.from_pretrained(savepath)
 model = model.to(device)
 
 data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
@@ -68,11 +77,18 @@ os.makedirs(log_dir, exist_ok=True)
 
 args = TrainingArguments(
     output_dir=savepath,
-    learning_rate=2e-5,
+
+    learning_rate=6e-4,
+    lr_scheduler_type="cosine_with_restarts",
+    warmup_steps=2000,
+    # Specify AdamW optimizer
+    optim="adamw_torch",
     weight_decay=0.01,
+    max_grad_norm=1.0,
+
     num_train_epochs=1,
-    per_device_train_batch_size=16,
-    gradient_accumulation_steps=8, # Accumulate gradients over N steps
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=16, # Accumulate gradients over N steps
     #With gradient accumulation (gradient_accumulation_steps=8):
         # You split what would have been one batch into 8 smaller micro-batches
         # For each micro-batch, you:
@@ -86,19 +102,19 @@ args = TrainingArguments(
     metric_for_best_model="loss",
     greater_is_better=False,
 
-    eval_steps=100,
+    eval_steps=1000,
     eval_strategy="steps",
-    eval_accumulation_steps=8,
-    per_device_eval_batch_size=16,
+    eval_accumulation_steps=16,
+    per_device_eval_batch_size=4,
 
-    warmup_steps=100,
     logging_dir=log_dir,
     logging_steps=100,
+
     save_steps=100,
     save_total_limit=10,
     save_strategy="steps",
     save_safetensors=False,
-    # report_to="tensorboard",
+
     gradient_checkpointing=False,
 
     #With Gradient Checkpointing:
@@ -119,4 +135,10 @@ trainer = Trainer(
     ]
 )
 
-trainer.train()
+# Resume from last checkpoint if available
+if args.resume:
+    print(f"Resuming from checkpoint: {log_dir}")
+    trainer.train(resume_from_checkpoint=True)
+else:
+    print("Starting new training")
+    trainer.train()
