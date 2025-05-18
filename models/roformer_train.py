@@ -21,7 +21,7 @@ config = Config(vocab_size=tokenizer.vocab_size,
 # Get the save path from the accelerate CLI arguments or use default
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--output_dir", type=str, default="/home/ubuntu/roformer-base", 
+parser.add_argument("--output_dir", type=str, default="/home/ubuntu/roformer", 
                     help="Directory to save model checkpoints")
 args, _ = parser.parse_known_args()
 savepath = args.output_dir
