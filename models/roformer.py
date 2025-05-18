@@ -181,5 +181,6 @@ class RoFormerForCausalLM(nn.Module):
             # Input (logits): [N, C] where N is number of samples and C is number of classes
             # Target (labels): [N] where each value is the correct class index
 
-        debugpy.breakpoint()
+        if loss is not None and loss.dim() == 0:
+            loss = loss.unsqueeze(0)
         return {"loss": loss, "logits": logits}

@@ -7,6 +7,8 @@ import json
 from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
 from models import RoFormerForCausalLM, RoFormerDecoder
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks")
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2")  # or your custom one
 tokenizer.pad_token = tokenizer.eos_token
@@ -42,10 +44,10 @@ if not os.path.exists(config_path):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-dataset = load_dataset("chrisjob1021/gpt2_tokenized_concatenated_openwebtext")
+ds = load_dataset("chrisjob1021/gpt2_tokenized_concatenated_openwebtext")
 
 # Split the dataset into training and evaluation sets
-train_test_split = dataset.train_test_split(test_size=0.01, seed=42)
+train_test_split = ds["train"].train_test_split(test_size=0.01, seed=42)
 train_dataset = train_test_split["train"]
 eval_dataset = train_test_split["test"]
 
@@ -56,9 +58,9 @@ tokenizer.pad_token = tokenizer.eos_token
 
 # Add command line argument for resuming from checkpoint
 parser.add_argument("--resume", action="store_true", help="Resume training from last checkpoint")
-args, _ = parser.parse_known_args()
+accelerate_args, _ = parser.parse_known_args()
 
-if args.resume and os.path.exists(savepath):
+if accelerate_args.resume and os.path.exists(savepath):
     print(f"Resuming from checkpoint: {savepath}")
     model = RoFormerForCausalLM.from_pretrained(savepath)
 else:
@@ -69,7 +71,6 @@ model = model.to(device)
 
 data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
-import os
 # Get the absolute path for logs
 log_dir = os.path.join(os.path.dirname(savepath), "logs")
 # Create the logging directory if it doesn't exist
@@ -110,12 +111,14 @@ args = TrainingArguments(
     logging_dir=log_dir,
     logging_steps=100,
 
-    save_steps=100,
+    save_steps=1000,
     save_total_limit=10,
     save_strategy="steps",
     save_safetensors=False,
 
     gradient_checkpointing=False,
+
+    ddp_find_unused_parameters=False,
 
     #With Gradient Checkpointing:
         # During the forward pass, only store activations at certain "checkpoints"
@@ -136,7 +139,7 @@ trainer = Trainer(
 )
 
 # Resume from last checkpoint if available
-if args.resume:
+if accelerate_args.resume:
     print(f"Resuming from checkpoint: {log_dir}")
     trainer.train(resume_from_checkpoint=True)
 else:
