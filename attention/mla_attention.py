@@ -56,13 +56,13 @@ class MultiHeadLatentAttention(nn.Module):
         return k_R_t, kr_cache
 
     def forward(self, h, latent_kv_cache=None, kr_cache=None):
-        k_C_t, v_C_t, latent_kv_cache = self.LatentKVAttention(h, latent_kv_cache)
         if kr_cache is not None:
-            past_seq_len = kr_cache.shape[1]
+            past_seq_len = kr_cache.size(1)
         else:
-            past_seq_len = 0    
+            past_seq_len = 0
 
-        debugpy.breakpoint()
+        k_C_t, v_C_t, latent_kv_cache = self.LatentKVAttention(h, latent_kv_cache)
+
         k_R_t, kr_cache = self.KR(h, kr_cache)
         batch_size, seq_len, dim = k_C_t.shape
         k_C_t = k_C_t.view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
@@ -81,9 +81,10 @@ class MultiHeadLatentAttention(nn.Module):
 
         q_t = torch.cat([q_C_t, q_R_t], dim=-1)
 
-        v_t = v_C_t 
+        v_t = v_C_t
 
-        out = self.MultiHeadAttention(q_t, k_t, v_t, multi_input_vector=True)
+        debugpy.breakpoint()
+        out = self.MultiHeadAttention(q_t, k_t, v_t, past_seq_len=past_seq_len, multi_input_vector=True)
         return out, latent_kv_cache, kr_cache
         
 class LatentKVAttention(nn.Module):

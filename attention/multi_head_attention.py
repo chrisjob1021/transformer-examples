@@ -29,13 +29,18 @@ class MultiHeadAttention(nn.Module):
 
         self.W_O = W_O
 
-    def forward(self, h, k_proj=None, v_proj=None, multi_input_vector=False, attention_mask=None):
-        batch_size, seq_len = h.size(0), h.size(1)
+    def forward(self, h, k_proj=None, v_proj=None, past_seq_len=0, multi_input_vector=False, attention_mask=None):
+        if multi_input_vector:
+            batch_size, new_seq_len = h.size(0), h.size(2)
+        else:
+            batch_size, new_seq_len = h.size(0), h.size(1)
+
+        seq_len = new_seq_len + past_seq_len
 
         if multi_input_vector:
-            h = q_proj
+            q_proj = h
         else:
-            q_proj = self.W_Q(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+            q_proj = self.W_Q(h).view(batch_size, new_seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
             k_proj = self.W_K(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
             v_proj = self.W_V(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
@@ -75,6 +80,7 @@ class MultiHeadAttention(nn.Module):
         causal_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
         causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, seq_len]
         causal_mask = causal_mask.to(qk.device)  # Move to same device as qk
+        debugpy.breakpoint()
 
         # Use causal mask
         # When this mask is used with masked_fill(causal_mask, float("-inf")), 
