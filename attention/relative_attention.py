@@ -10,16 +10,16 @@ Implementation of Relative Multi-Head Self-Attention based on:
 import torch
 import torch.nn as nn
 import math
-from attention.config import Config
+from utils import Config
 
 class RelativeMultiHeadSelfAttention(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
 
-        self.d_model = config.dim
+        self.d_model = config.d_model
         self.num_heads = config.num_heads
-        self.head_dim = config.dim // config.num_heads
-        self.max_len = config.max_len
+        self.head_dim = config.d_model // config.num_heads
+        self.max_seq_len = config.max_seq_len
 
         # Projections for the usual Q, K, V
         self.query_proj = nn.Linear(self.d_model, self.d_model)
@@ -27,8 +27,8 @@ class RelativeMultiHeadSelfAttention(nn.Module):
         self.value_proj = nn.Linear(self.d_model, self.d_model)
         self.out_proj   = nn.Linear(self.d_model, self.d_model)
 
-        self.relative_key_embeddings = nn.Embedding(2 * self.max_len + 1, self.head_dim)
-        self.relative_value_embeddings = nn.Embedding(2 * self.max_len + 1, self.head_dim)
+        self.relative_key_embeddings = nn.Embedding(2 * self.max_seq_len + 1, self.head_dim)
+        self.relative_value_embeddings = nn.Embedding(2 * self.max_seq_len + 1, self.head_dim)
     
     def forward(self, x):
         batch_size, seq_len, d_model = x.shape
@@ -46,10 +46,10 @@ class RelativeMultiHeadSelfAttention(nn.Module):
         pos_ids = torch.arange(seq_len).unsqueeze(1) - torch.arange(seq_len)
 
         # If sequence is seq_len, then pos_ids is in range [-(seq_len), (seq_len)]
-        # Shifting by max_len puts the range in [0, 2 * max_len + 1]
+        # Shifting by max_seq_len puts the range in [0, 2 * max_seq_len + 1]
         # which is the range of the relative key embeddings
-        pos_ids = pos_ids + (self.max_len)
-        pos_ids = pos_ids.clamp(0, 2*self.max_len + 1)                      # shape (seq_len, seq_len)
+        pos_ids = pos_ids + (self.max_seq_len)
+        pos_ids = pos_ids.clamp(0, 2*self.max_seq_len + 1)                      # shape (seq_len, seq_len)
 
         rel_k = self.relative_key_embeddings(pos_ids)                       # shape (seq_len, seq_len, head_dim)
         q_r = q.unsqueeze(3)                                                # shape (batch_size, num_heads, seq_len, 1, head_dim)
