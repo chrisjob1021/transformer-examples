@@ -15,7 +15,7 @@ The RoFormer model enhances the standard Transformer architecture by replacing t
 
 For single GPU training, you can use the provided Jupyter notebook:
 ```bash
-jupyter notebook roformer_training_single_gpu.ipynb
+jupyter notebook roformer_train_single_gpu.ipynb
 ```
 
 ### Multi-GPU Training with Accelerate
