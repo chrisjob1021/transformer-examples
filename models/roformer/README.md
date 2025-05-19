@@ -51,7 +51,7 @@ The training script uses the following default configuration:
 - Evaluation: Every 1000 steps with early stopping
 - Checkpointing: Every 1000 steps, keeping the last 10 checkpoints
 
-### Hardware Requirements
+#### Hardware Requirements
 
 The training script is optimized for distributed training across multiple GPUs. The default configuration assumes:
 - 8x NVIDIA V100 GPUs (32GB VRAM each)
@@ -61,28 +61,20 @@ The training script is optimized for distributed training across multiple GPUs. 
 
 You can modify these parameters in `roformer_train.py` to suit your needs.
 
+### Monitoring Training
+
+The training progress is logged using TensorBoard. Logs are stored in the parent directory of the output directory. For example, if your output directory is `outputs/roformer_run1`, the logs will be stored in `outputs/logs`.
+
+To start TensorBoard and monitor training:
+
+```bash
+# Navigate to the parent directory of the logs
+cd outputs
+
+# Start TensorBoard
+transformer-examples/scripts/start_tensorboard.sh
+```
+
 ## Model Usage
 
-After training, you can load and use the model:
-
-```python
-from models.roformer import RoFormerForCausalLM
-from transformers import AutoTokenizer
-
-# Load the tokenizer
-tokenizer = AutoTokenizer.from_pretrained("gpt2")
-tokenizer.pad_token = tokenizer.eos_token
-
-# Example text generation
-input_text = "Once upon a time"
-input_ids = tokenizer(input_text, return_tensors="pt").input_ids
-
-# Load the trained model
-model = RoFormerForCausalLM.from_pretrained("/path/to/saved/model")
-
-# Generate text
-output = model(input_ids)
-# Decode the generated output
-generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
-print(f"Generated text: {generated_text}")
-``` 
+For an example of how to use the trained model, please refer to the [roformer.ipynb](roformer.ipynb) notebook.
