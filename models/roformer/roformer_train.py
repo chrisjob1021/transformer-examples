@@ -5,7 +5,7 @@ import torch
 import os
 import json
 from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
-from models import RoFormerForCausalLM, RoFormerDecoder
+from models.roformer import RoFormerForCausalLM, RoFormerDecoder
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks")

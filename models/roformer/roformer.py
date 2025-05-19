@@ -1,3 +1,10 @@
+"""
+Implementation of RoFormer (Rotary Transformer) based on the paper:
+Su, J., Lu, Y., Pan, S., Wen, B., & Liu, Y. (2021). 
+RoFormer: Enhanced Transformer with Rotary Position Embedding. 
+arXiv:2104.09864
+"""
+
 import attention
 import torch.nn as nn
 from utils import Config
