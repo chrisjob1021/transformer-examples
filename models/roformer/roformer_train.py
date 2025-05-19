@@ -140,7 +140,7 @@ trainer = Trainer(
 
 # Resume from last checkpoint if available
 if accelerate_args.resume:
-    print(f"Resuming from checkpoint: {log_dir}")
+    print(f"Resuming from checkpoint")
     trainer.train(resume_from_checkpoint=True)
 else:
     print("Starting new training")
