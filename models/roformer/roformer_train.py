@@ -6,6 +6,7 @@ import os
 import json
 from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
 from models.roformer import RoFormerForCausalLM, RoFormerDecoder
+from datetime import datetime
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks")
@@ -60,19 +61,20 @@ tokenizer.pad_token = tokenizer.eos_token
 parser.add_argument("--resume", action="store_true", help="Resume training from last checkpoint")
 accelerate_args, _ = parser.parse_known_args()
 
-if accelerate_args.resume and os.path.exists(savepath):
-    print(f"Resuming from checkpoint: {savepath}")
-    model = RoFormerForCausalLM.from_pretrained(savepath)
-else:
-    print("Initializing new model")
-    model_base = RoFormerDecoder(config)
-    model = RoFormerForCausalLM(model_base, config)
+# if accelerate_args.resume and os.path.exists(savepath):
+#     print(f"Resuming from checkpoint: {savepath}")
+#     model = RoFormerForCausalLM.from_pretrained(savepath)
+# else:
+#     print("Initializing new model")
+model_base = RoFormerDecoder(config)
+model = RoFormerForCausalLM(model_base, config)
 model = model.to(device)
 
 data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
 # Get the absolute path for logs
-log_dir = os.path.join(os.path.dirname(savepath), "logs")
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_dir = os.path.join(os.path.dirname(savepath), "logs", f"run_{timestamp}")
 # Create the logging directory if it doesn't exist
 os.makedirs(log_dir, exist_ok=True)
 
@@ -80,12 +82,12 @@ args = TrainingArguments(
     output_dir=savepath,
 
     learning_rate=6e-4,
-    lr_scheduler_type="cosine_with_restarts",
-    warmup_steps=2000,
+    # lr_scheduler_type="cosine_with_restarts",
+    warmup_ratio=0.1,  # 10% of total training steps for warmup
     # Specify AdamW optimizer
     optim="adamw_torch",
     weight_decay=0.01,
-    max_grad_norm=1.0,
+    max_grad_norm=0.5,
 
     num_train_epochs=1,
     per_device_train_batch_size=4,
@@ -103,23 +105,22 @@ args = TrainingArguments(
     metric_for_best_model="loss",
     greater_is_better=False,
 
-    eval_steps=1000,
+    eval_steps=500,
     eval_strategy="steps",
     eval_accumulation_steps=16,
     per_device_eval_batch_size=4,
 
     logging_dir=log_dir,
-    logging_steps=100,
+    logging_steps=50,
 
-    save_steps=1000,
+    save_steps=500,
     save_total_limit=10,
     save_strategy="steps",
     save_safetensors=False,
 
-    gradient_checkpointing=False,
-
     ddp_find_unused_parameters=False,
 
+    gradient_checkpointing=False,
     #With Gradient Checkpointing:
         # During the forward pass, only store activations at certain "checkpoints"
         # During backpropagation, RECOMPUTE the intermediate activations as needed
