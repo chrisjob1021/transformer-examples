@@ -83,13 +83,15 @@ args = TrainingArguments(
 
     learning_rate=6e-4,
     # lr_scheduler_type="cosine_with_restarts",
-    warmup_ratio=0.1,  # 10% of total training steps for warmup
+    # lr_scheduler_type="cosine",
+    # warmup_ratio=0.1,  # 10% of total training steps for warmup
+    warmup_steps=2_000,
     # Specify AdamW optimizer
     optim="adamw_torch",
-    weight_decay=0.01,
-    max_grad_norm=0.5,
+    weight_decay=0.1,
+    max_grad_norm=1.0,
 
-    num_train_epochs=1,
+    max_steps=20_000,
     per_device_train_batch_size=4,
     gradient_accumulation_steps=16, # Accumulate gradients over N steps
     #With gradient accumulation (gradient_accumulation_steps=8):
@@ -121,6 +123,7 @@ args = TrainingArguments(
     ddp_find_unused_parameters=False,
 
     gradient_checkpointing=False,
+    # Must be supported by the model
     #With Gradient Checkpointing:
         # During the forward pass, only store activations at certain "checkpoints"
         # During backpropagation, RECOMPUTE the intermediate activations as needed
