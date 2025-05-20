@@ -57,7 +57,7 @@ class RelativeMultiHeadSelfAttention(nn.Module):
         qk_r = torch.matmul(q_r, rel_k.transpose(-2, -1)).squeeze(-2)       # shape (batch_size, num_heads, seq_len, seq_len)
 
         qk = qk + qk_r
-        qk_r = qk / math.sqrt(self.head_dim)
+        qk = qk / math.sqrt(self.head_dim)
         probs = torch.softmax(qk, dim=-1)                                  # shape (batch_size, num_heads, seq_len, seq_len)
 
         attn = torch.matmul(probs, v) # scores torch.Size([2, 4, 12, 4])          

@@ -57,6 +57,7 @@ class TrainingConfig:
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.block_size = block_size
 
 class MLAConfig(Config):
     """Configuration class for MLA (Multi-Linear Attention) model.
