@@ -16,4 +16,4 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2").to(device)
 model = RoFormerForCausalLM.from_pretrained(ckpt_dir).to(device)
 
 model.save_pretrained(save_dir)
-tokenizer.save_pretrained(save_dir)
+tokenizer.save_pretrained(save_dir) 
