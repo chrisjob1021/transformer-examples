@@ -4,7 +4,7 @@ from utils import TrainingConfig, Config
 import torch
 import os
 import json
-from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 from models.roformer import RoFormerForCausalLM, RoFormerDecoder
 from datetime import datetime
 
@@ -103,7 +103,7 @@ args = TrainingArguments(
         # ACCUMULATE the gradients (don't update weights yet)
         # Clear the activations (but keep gradients)
 
-    load_best_model_at_end=True,
+    # load_best_model_at_end=True,
     metric_for_best_model="loss",
     greater_is_better=False,
 
@@ -137,9 +137,9 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
     data_collator=data_collator,
-    callbacks=[
-        EarlyStoppingCallback(early_stopping_patience=3, early_stopping_threshold=0.01)
-    ]
+    # callbacks=[
+    #     EarlyStoppingCallback(early_stopping_patience=3, early_stopping_threshold=0.01)
+    # ]
 )
 
 # Resume from last checkpoint if available
