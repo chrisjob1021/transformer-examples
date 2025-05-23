@@ -110,7 +110,8 @@ class RoFormerForCausalLM(nn.Module):
         # Save the model's state dict
         model_path = os.path.join(save_directory, "pytorch_model.bin")
         torch.save(self.state_dict(), model_path)
-        
+
+        # TODO: Don't hard code this format
         # Save the configuration
         config_dict = {
             "vocab_size": self.backbone.config.vocab_size,
