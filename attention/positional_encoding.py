@@ -3,18 +3,6 @@ import torch.nn as nn
 import math
 from utils import Config
 
-class RotaryPositionalEncoding(nn.Module):
-    def __init__(self, config: Config):
-        super().__init__()
-        self.config = config
-        self.past_seq_len = 0
-
-    def forward(self, x):
-        with torch.no_grad():
-            x = apply_rope(x, self.past_seq_len, visualize=True)
-            self.past_seq_len = x.size(2)
-        return x
-
 class AbsolutePositionalEncoding(nn.Module):
     """
     Implementation of Absolute Positional Encoding based on the "Attention Is All You Need" paper:

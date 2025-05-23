@@ -9,7 +9,7 @@ class Config:
         per_head_dim (int): Dimension per attention head
         max_seq_len (int): Maximum sequence length
         dropout (float): Dropout rate
-        rope (bool): Whether to use RoPE (Rotary Position Embedding)
+        enable_rope (bool): Whether to use RoPE (Rotary Position Embedding)
         ffn_dim (int): Feed-forward network dimension
     """
     
@@ -20,7 +20,7 @@ class Config:
         num_heads: int = 4,
         max_seq_len: int = 1024,
         dropout: float = 0.1,
-        rope: bool = False,
+        enable_rope: bool = False,
         num_layers: int = 6,
         per_head_dim: Optional[int] = None,
         ffn_dim: Optional[int] = None,
@@ -29,7 +29,7 @@ class Config:
         self.num_heads = num_heads
         self.per_head_dim = per_head_dim if per_head_dim is not None else d_model // num_heads
         self.dropout = dropout
-        self.rope = rope
+        self.enable_rope = enable_rope
         self.ffn_dim = ffn_dim if ffn_dim is not None else d_model
         self.vocab_size = vocab_size
         self.num_layers = num_layers
@@ -76,7 +76,6 @@ class MLAConfig(Config):
         num_heads: int = 4,
         max_seq_len: int = 1024,
         dropout: float = 0.1,
-        rope: bool = False,
         num_layers: int = 6,
         per_head_dim: Optional[int] = None,
         ffn_dim: Optional[int] = None
@@ -87,10 +86,10 @@ class MLAConfig(Config):
             num_heads=num_heads,
             max_seq_len=max_seq_len,
             dropout=dropout,
-            rope=rope,
             num_layers=num_layers,
             per_head_dim=per_head_dim,
             ffn_dim=ffn_dim
         )
+        self.enable_rope = True
         self.d_model_prime_compressed = d_model * num_heads // 16
         self.d_model_compressed = d_model * num_heads // 16

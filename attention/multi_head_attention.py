@@ -7,13 +7,14 @@ Attention Is All You Need. arXiv:1706.03762
 from torch import nn
 import torch
 import numpy as np
-from attention.positional_encoding import RotaryPositionalEncoding
 import debugpy
+from utils.rope import apply_rope
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, config, W_O):
         super().__init__()
         self.config = config
+        self.past_seq_len = 0
 
         # # Input dimension depends on whether RoPE is enabled
         # input_dim = config.per_head_dim * 2 if config.rope else config.per_head_dim
@@ -23,10 +24,6 @@ class MultiHeadAttention(nn.Module):
         self.W_Q = nn.Linear(config.d_model, config.d_model)
         self.W_V = nn.Linear(config.d_model, config.d_model)
         
-        self.rope = None
-        if config.rope:
-            self.rope = RotaryPositionalEncoding(config)
-
         self.W_O = W_O
 
     def forward(self, h, k_proj=None, v_proj=None, past_seq_len=0, multi_input_vector=False, attention_mask=None):
@@ -43,6 +40,10 @@ class MultiHeadAttention(nn.Module):
             q_proj = self.W_Q(h).view(batch_size, new_seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
             k_proj = self.W_K(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
             v_proj = self.W_V(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
+
+        q_proj = apply_rope(q_proj, self.past_seq_len, visualize=False, debug=False)
+        k_proj = apply_rope(k_proj, self.past_seq_len, visualize=False, debug=False)
+        self.past_seq_len = seq_len
 
         qk = q_proj @ k_proj.transpose(-2, -1).to(q_proj.device)
         qk = qk / np.sqrt(self.config.per_head_dim)

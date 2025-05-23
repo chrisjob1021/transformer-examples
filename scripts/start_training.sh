@@ -9,4 +9,4 @@ else
     exit 1
 fi
 
-accelerate launch models/roformer_train.py 
+accelerate launch models/roformer/roformer_train.py --resume
