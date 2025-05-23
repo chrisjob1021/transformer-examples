@@ -16,13 +16,13 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
 
     # 2) Create a position index [0, 1, 2, ..., seq_len-1]
     #    shape: (seq_len,)
-    positions = torch.arange(start=past_seq_len, end=past_seq_len+seq_len)
+    positions = torch.arange(start=past_seq_len, end=past_seq_len+seq_len).to(x.device)
     # if debug:
     #     print("positions.shape", positions.shape, positions)
 
     # 3) Create an index over the half-dimension. We treat each dimension i as paired (2i, 2i+1).
     #    shape: (per_head_dim//2,)
-    dim_idx = torch.arange(per_head_dim // 2)
+    dim_idx = torch.arange(per_head_dim // 2).to(x.device)
     # if debug:
     #     print("dim_idx.shape", dim_idx.shape, dim_idx)
 
@@ -30,15 +30,15 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
     #    RoPE defines these angles as positions * (base_freq ^ (-2*i / d))
     #    where d is the total head dimension. We exponentiate freq in the negative direction.
     #    shape: (seq_len, per_head_dim//2)
-    theta = positions.unsqueeze(1) * (freq ** (-2 * dim_idx / per_head_dim))
+    theta = positions.unsqueeze(1) * (freq ** (-2 * dim_idx / per_head_dim)).to(x.device)
     if debug:
         print("theta.shape", theta.shape)
         print("theta", theta)
 
     # 5) Compute sin and cos for all positions and dimensions
     #    shape: both are (seq_len, per_head_dim//2)
-    cos_theta = torch.cos(theta)
-    sin_theta = torch.sin(theta)
+    cos_theta = torch.cos(theta).to(x.device)
+    sin_theta = torch.sin(theta).to(x.device)
 
     # 6) Reshape cos/sin to allow broadcasting across (batch_size, n_heads)
     #    We want them to match the shape (batch_size, n_heads, seq_len, per_head_dim//2)
@@ -54,20 +54,11 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
 
     # 7) Reshape x so we can work with the final dimension as pairs: (..., 2)
     #    shape: (batch_size, n_heads, seq_len, per_head_dim//2, 2)
-    x_reshaped = x.view(batch_size, n_heads, seq_len, per_head_dim // 2, 2)
+    x_reshaped = x.view(batch_size, n_heads, seq_len, per_head_dim // 2, 2).to(x.device)
     # if debug:
     #     print("x_reshaped.shape", x_reshaped.shape)
     #     print("x_reshaped", x_reshaped[0, 0, :1])
         # print("x_reshaped", x_reshaped[0, 0, 2:4])
-    
-    # Create lists to store original and rotated pairs for visualization
-    original_pairs = []
-    rotated_pairs = []
-    
-    # Collect original pairs from first head, first position
-    for i in range(per_head_dim // 2):
-        pair = (x_reshaped[0, 0, 0, i, 0].item(), x_reshaped[0, 0, 0, i, 1].item())
-        original_pairs.append(pair)
 
     # 8) Apply RoPE rotation:
     #    Let x_reshaped[..., 0] = x_even
@@ -93,41 +84,38 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
     x_rotated_even = x_even * cos_theta - x_odd * sin_theta
     x_rotated_odd  = x_even * sin_theta + x_odd * cos_theta
 
-    # Print detailed calculations for up to 2 sequence positions
-    for pos in range(min(2, seq_len)):
-        print(f"\nMath equation for position {pos}:")
+    if debug:
+        # Print detailed calculations for up to 2 sequence positions
+        for pos in range(min(2, seq_len)):
+            print(f"\nMath equation for position {pos}:")
+            
+            # First dimension calculations
+            first_even = x_even[0, 0, pos, 0].item()
+            first_odd = x_odd[0, 0, pos, 0].item()
+            first_cos = cos_theta[0, 0, pos, 0].item()
+            first_sin = sin_theta[0, 0, pos, 0].item()
+            
+            print(f"Dimension 0:")
+            print(f"x_rotated_even = {first_even:.4f} * {first_cos:.4f} - {first_odd:.4f} * {first_sin:.4f} = {first_even * first_cos - first_odd * first_sin:.4f}")
+            print(f"x_rotated_odd = {first_even:.4f} * {first_sin:.4f} + {first_odd:.4f} * {first_cos:.4f} = {first_even * first_sin + first_odd * first_cos:.4f}")
+            
+            # Second dimension calculations
+            second_even = x_even[0, 0, pos, 1].item()
+            second_odd = x_odd[0, 0, pos, 1].item()
+            second_cos = cos_theta[0, 0, pos, 1].item()
+            second_sin = sin_theta[0, 0, pos, 1].item()
+            
+            print(f"Dimension 1:")
+            print(f"x_rotated_even = {second_even:.4f} * {second_cos:.4f} - {second_odd:.4f} * {second_sin:.4f} = {second_even * second_cos - second_odd * second_sin:.4f}")
+            print(f"x_rotated_odd = {second_even:.4f} * {second_sin:.4f} + {second_odd:.4f} * {second_cos:.4f} = {second_even * second_sin + second_odd * second_cos:.4f}")
         
-        # First dimension calculations
-        first_even = x_even[0, 0, pos, 0].item()
-        first_odd = x_odd[0, 0, pos, 0].item()
-        first_cos = cos_theta[0, 0, pos, 0].item()
-        first_sin = sin_theta[0, 0, pos, 0].item()
-        
-        print(f"Dimension 0:")
-        print(f"x_rotated_even = {first_even:.4f} * {first_cos:.4f} - {first_odd:.4f} * {first_sin:.4f} = {first_even * first_cos - first_odd * first_sin:.4f}")
-        print(f"x_rotated_odd = {first_even:.4f} * {first_sin:.4f} + {first_odd:.4f} * {first_cos:.4f} = {first_even * first_sin + first_odd * first_cos:.4f}")
-        
-        # Second dimension calculations
-        second_even = x_even[0, 0, pos, 1].item()
-        second_odd = x_odd[0, 0, pos, 1].item()
-        second_cos = cos_theta[0, 0, pos, 1].item()
-        second_sin = sin_theta[0, 0, pos, 1].item()
-        
-        print(f"Dimension 1:")
-        print(f"x_rotated_even = {second_even:.4f} * {second_cos:.4f} - {second_odd:.4f} * {second_sin:.4f} = {second_even * second_cos - second_odd * second_sin:.4f}")
-        print(f"x_rotated_odd = {second_even:.4f} * {second_sin:.4f} + {second_odd:.4f} * {second_cos:.4f} = {second_even * second_sin + second_odd * second_cos:.4f}")
-    
-    # # Print the actual computed values
-    # print("\nComputed rotated values:")
-    # for pos in range(min(2, seq_len)):
-    #     print(f"Position {pos}:")
-    #     print(f"x_rotated_even: {x_rotated_even[0, 0, pos, :2]}")
-    #     print(f"x_rotated_odd: {x_rotated_odd[0, 0, pos, :2]}")
+        # # Print the actual computed values
+        # print("\nComputed rotated values:")
+        # for pos in range(min(2, seq_len)):
+        #     print(f"Position {pos}:")
+        #     print(f"x_rotated_even: {x_rotated_even[0, 0, pos, :2]}")
+        #     print(f"x_rotated_odd: {x_rotated_odd[0, 0, pos, :2]}")
 
-    # Collect rotated pairs
-    for i in range(per_head_dim // 2):
-        pair = (x_rotated_even[0, 0, 0, i].item(), x_rotated_odd[0, 0, 0, i].item())
-        rotated_pairs.append(pair)
 
     if visualize:
         # Colors for original and rotated vectors
@@ -212,14 +200,14 @@ def apply_rope(x, past_seq_len=0, freq=10000.0, visualize=False, debug=False):
 
     # 9) Re-combine the rotated pairs into the last dimension
     #    shape still: (batch_size, seq_len, n_heads, per_head_dim // 2, 2)
-    x_rotated = torch.stack([x_rotated_even, x_rotated_odd], dim=-1)
+    x_rotated = torch.stack([x_rotated_even, x_rotated_odd], dim=-1).to(x.device)
     # if debug:
     #     print("x_rotated.shape", x_rotated.shape)
     #     # print("x_rotated", x_rotated[0, 0, :1])
 
     # # 10) Reshape x_rotated to match the original shape
     # #    shape: (batch_size, seq_len, n_heads, per_head_dim)
-    x_rotated = x_rotated.view(batch_size, n_heads, seq_len, per_head_dim)
+    x_rotated = x_rotated.view(batch_size, n_heads, seq_len, per_head_dim).to(x.device)
     # if debug:
     #     print("x_rotated", x_rotated[0, 0, :1])
     return x_rotated
