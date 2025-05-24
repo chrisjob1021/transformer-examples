@@ -17,6 +17,8 @@ class MultiHeadAttention(nn.Module):
         self.past_seq_len = 0
         self.enable_rope = config.enable_rope
 
+        #print(f"RoPE enabled: {self.enable_rope}")
+
         # # Input dimension depends on whether RoPE is enabled
         # input_dim = config.per_head_dim * 2 if config.rope else config.per_head_dim
         
