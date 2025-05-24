@@ -23,6 +23,7 @@ def evaluate_model(model, dataloader, device):
         for batch in tqdm(dataloader, desc="Evaluating"):
             # Move batch to device
             input_ids = batch["input_ids"].to(device)
+            batch_size = input_ids.size(0)
             attention_mask = batch["attention_mask"].to(device)
             
             # Create labels by cloning input_ids
@@ -38,11 +39,22 @@ def evaluate_model(model, dataloader, device):
             predictions = torch.argmax(logits, dim=-1)
             
             # Store predictions and labels (excluding padding and ignored tokens)
+            # The sequence of operations is:
+            # valid_mask filters out padding tokens and ignored tokens (where label is -100)
             valid_mask = (labels != -100) & (attention_mask == 1)
+            # .cpu() moves the tensor from GPU to CPU
+            # .numpy() converts the PyTorch tensor to a NumPy array
+            # extend() adds these values to the running list of all predictions/labels
             all_predictions.extend(predictions[valid_mask].cpu().numpy())
+            # NumPy is required in this case because the code is using scikit-learn's accuracy_score function to calculate the model's accuracy.
+            # NumPy arrays can only be created from CPU tensors, not GPU tensors
             all_labels.extend(labels[valid_mask].cpu().numpy())
             
             # Accumulate loss and count tokens
+            # This creates a boolean tensor "labels" where each element is True if the label is not -100, False if it is -100
+            # .sum() sums up all the True values in the boolean tensor
+            # In PyTorch, True is treated as 1 and False as 0 when summing
+            # So this gives us the count of valid tokens (non-padding tokens)
             total_loss += loss.item() * (labels != -100).sum().item()
             total_tokens += (labels != -100).sum().item()
     
@@ -70,11 +82,16 @@ def generate_text(model, tokenizer, prompt, max_length=50, temperature=0.7, top_
             logits = outputs["logits"]
             
             # Get the last token's probabilities
+            # First dimension : - represents all batches
+            # Second dimension -1 - represents the last position in the sequence
+            # Third dimension : - represents all possible token probabilities
             next_token_logits = logits[:, -1, :] / temperature
             
             # Apply top-k filtering
             top_k_logits, top_k_indices = torch.topk(next_token_logits, k=top_k)
+            # This sets all logits to negative infinity
             next_token_logits[0, :] = float('-inf')
+            # Restore only the top k logits
             next_token_logits[0, top_k_indices[0]] = top_k_logits[0]
             
             # Sample from the filtered distribution
@@ -99,35 +116,29 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
     tokenizer.pad_token = tokenizer.eos_token
     
-    # Load model
-    model_path = "/home/ubuntu/roformer/roformer-rope-disabled"
-    print(f"Loading model from {model_path}")
-    
-    # Load config
-    with open(os.path.join(model_path, "config.json"), "r") as f:
-        config_dict = json.load(f)
-    config = Config(**config_dict)
+    # Load model from HuggingFace
+    model_name = "chrisjob1021/RoFormer-base-124M-RoPE-disabled"
+    print(f"Loading model from {model_name}")
     
     # Load model
-    model = RoFormerForCausalLM.from_pretrained(model_path)
+    model = RoFormerForCausalLM.from_pretrained(model_name)
     model = model.to(device)
     
     # Load evaluation dataset
     print("Loading evaluation dataset...")
     ds = load_dataset("chrisjob1021/gpt2_tokenized_concatenated_openwebtext")
-    eval_dataset = ds["train"].train_test_split(test_size=0.001, seed=42)["test"]
+    eval_dataset = ds["train"].train_test_split(test_size=0.0001, seed=42)["test"]
     
     # Prepare data collator
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=False,
-        pad_to_multiple_of=8
     )
     
     # Create dataloader
     eval_dataloader = DataLoader(
         eval_dataset,
-        batch_size=8,
+        batch_size=16,
         collate_fn=data_collator,
         shuffle=False
     )
