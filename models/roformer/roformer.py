@@ -111,19 +111,10 @@ class RoFormerForCausalLM(nn.Module):
         model_path = os.path.join(save_directory, "pytorch_model.bin")
         torch.save(self.state_dict(), model_path)
 
-        # TODO: Don't hard code this format
-        # Save the configuration
-        config_dict = {
-            "vocab_size": self.backbone.config.vocab_size,
-            "d_model": self.backbone.config.d_model,
-            "num_heads": self.backbone.config.num_heads,
-            "per_head_dim": self.backbone.config.per_head_dim,
-            "max_seq_len": self.backbone.config.max_seq_len,
-            "dropout": self.backbone.config.dropout,
-            "rope": self.backbone.config.rope,
-            "num_layers": self.backbone.config.num_layers,
-            "ffn_dim": self.backbone.config.ffn_dim,
-        }
+        # Save the configuration by dynamically getting all non-private attributes
+        config_dict = {k: getattr(self.backbone.config, k) 
+                      for k in vars(self.backbone.config) 
+                      if not k.startswith('_') and not callable(getattr(self.backbone.config, k))}
         
         config_path = os.path.join(save_directory, "config.json")
         with open(config_path, "w") as f:
@@ -171,6 +162,8 @@ class RoFormerForCausalLM(nn.Module):
             cfg_dict = json.load(f)
         cfg_dict.update(override_config)               # user overrides
         config = Config(**cfg_dict)
+
+        print(f"Loaded config: {cfg_dict}")
 
         # ── 2. instantiate model skeleton ────────────────────────
         backbone = RoFormerDecoder(config)

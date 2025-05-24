@@ -17,12 +17,12 @@ tokenizer.pad_token = tokenizer.eos_token
 training_config = TrainingConfig()
 config = Config(vocab_size=tokenizer.vocab_size,
     d_model=768, num_heads=12, ffn_dim=3072,
-    num_layers=12, max_seq_len=tokenizer.model_max_length )
+    num_layers=12, max_seq_len=tokenizer.model_max_length, enable_rope=True )
 
 # Get the save path from the accelerate CLI arguments or use default
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--output_dir", type=str, default="/home/ubuntu/roformer", 
+parser.add_argument("--output_dir", type=str, default=f"/home/ubuntu/roformer/rope-{'enabled' if config.enable_rope else 'disabled'}", 
                     help="Directory to save model checkpoints")
 args, _ = parser.parse_known_args()
 savepath = args.output_dir

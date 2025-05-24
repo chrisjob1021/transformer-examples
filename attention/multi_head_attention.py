@@ -15,6 +15,7 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
         self.config = config
         self.past_seq_len = 0
+        self.enable_rope = config.enable_rope
 
         # # Input dimension depends on whether RoPE is enabled
         # input_dim = config.per_head_dim * 2 if config.rope else config.per_head_dim
@@ -41,9 +42,10 @@ class MultiHeadAttention(nn.Module):
             k_proj = self.W_K(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
             v_proj = self.W_V(h).view(batch_size, seq_len, self.config.num_heads, self.config.per_head_dim).transpose(1, 2)
 
-        q_proj = apply_rope(q_proj, self.past_seq_len, visualize=False, debug=False)
-        k_proj = apply_rope(k_proj, self.past_seq_len, visualize=False, debug=False)
-        self.past_seq_len = seq_len
+        if self.enable_rope:
+            q_proj = apply_rope(q_proj, self.past_seq_len, visualize=False, debug=False)
+            k_proj = apply_rope(k_proj, self.past_seq_len, visualize=False, debug=False)
+            self.past_seq_len = seq_len
 
         qk = q_proj @ k_proj.transpose(-2, -1).to(q_proj.device)
         qk = qk / np.sqrt(self.config.per_head_dim)
