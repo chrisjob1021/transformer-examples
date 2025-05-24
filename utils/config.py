@@ -30,8 +30,6 @@ class Config:
         self.num_heads = num_heads
         self.per_head_dim = per_head_dim if per_head_dim is not None else d_model // num_heads
         self.dropout = dropout
-        self.enable_rope = enable_rope
-        # Handle backwards compatibility for rope parameter
         self.enable_rope = rope if rope is not None else enable_rope
         self.ffn_dim = ffn_dim if ffn_dim is not None else d_model
         self.vocab_size = vocab_size
