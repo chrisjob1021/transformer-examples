@@ -25,10 +25,9 @@ def evaluate_model(model, dataloader, device):
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             
-            # Create labels by shifting input_ids
+            # Create labels by cloning input_ids
+            # Model will handle the shift internally
             labels = input_ids.clone()
-            labels[:, :-1] = input_ids[:, 1:]
-            labels[:, -1] = -100  # Ignore the last token in loss computation
             
             # Forward pass with labels
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
