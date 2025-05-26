@@ -142,7 +142,7 @@ torch-tb-profiler==0.4.3
 tornado==6.4.2
 tqdm==4.67.1
 traitlets==5.14.3
--e git+https://github.com/chrisjob1021/transformer-examples.git@26ee72b76fd6520a68358a5a7b4ea6eb36574f61#egg=transformer_examples
+-e git+https://github.com/chrisjob1021/transformer-examples.git@2143db627bdff60fa171dc6035daea44802d4570#egg=transformer_examples
 transformers==4.51.3
 triton==3.2.0
 types-python-dateutil==2.9.0.20250516
