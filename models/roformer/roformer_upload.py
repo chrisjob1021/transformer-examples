@@ -3,9 +3,9 @@ from huggingface_hub import create_repo, HfApi
 # Upload to Hugging Face Hub
 # Replace these with your Hugging Face credentials
 HF_USERNAME = "chrisjob1021"  # Replace with your Hugging Face username
-MODEL_NAME = "RoFormer-base-124M-RoPE-disabled"  # Name for your model on Hugging Face
+MODEL_NAME = "RoFormer-base-124M-RoPE-enabled"  # Name for your model on Hugging Face
 REPO_NAME = f"{HF_USERNAME}/{MODEL_NAME}"
-save_path = "/home/ubuntu/roformer/RoFormer-base-124M-RoPE-disabled"
+save_path = "/home/ubuntu/roformer/RoFormer-base-124M-RoPE-enabled"
 
 # Create a new repository on Hugging Face Hub
 try:
