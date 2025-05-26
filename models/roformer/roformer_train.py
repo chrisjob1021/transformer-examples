@@ -4,7 +4,7 @@ from utils import TrainingConfig, Config
 import torch
 import os
 import json
-from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 from models.roformer import RoFormerForCausalLM, RoFormerDecoder
 from datetime import datetime
 
@@ -17,12 +17,12 @@ tokenizer.pad_token = tokenizer.eos_token
 training_config = TrainingConfig()
 config = Config(vocab_size=tokenizer.vocab_size,
     d_model=768, num_heads=12, ffn_dim=3072,
-    num_layers=12, max_seq_len=tokenizer.model_max_length )
+    num_layers=12, max_seq_len=tokenizer.model_max_length, enable_rope=True )
 
 # Get the save path from the accelerate CLI arguments or use default
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--output_dir", type=str, default="/home/ubuntu/roformer", 
+parser.add_argument("--output_dir", type=str, default=f"/home/ubuntu/roformer/rope-{'enabled' if config.enable_rope else 'disabled'}", 
                     help="Directory to save model checkpoints")
 args, _ = parser.parse_known_args()
 savepath = args.output_dir
@@ -103,7 +103,7 @@ args = TrainingArguments(
         # ACCUMULATE the gradients (don't update weights yet)
         # Clear the activations (but keep gradients)
 
-    load_best_model_at_end=True,
+    # load_best_model_at_end=True,
     metric_for_best_model="loss",
     greater_is_better=False,
 
@@ -137,9 +137,9 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
     data_collator=data_collator,
-    callbacks=[
-        EarlyStoppingCallback(early_stopping_patience=3, early_stopping_threshold=0.01)
-    ]
+    # callbacks=[
+    #     EarlyStoppingCallback(early_stopping_patience=3, early_stopping_threshold=0.01)
+    # ]
 )
 
 # Resume from last checkpoint if available

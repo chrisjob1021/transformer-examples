@@ -37,6 +37,15 @@ To resume training from a checkpoint:
 accelerate launch roformer_train.py --resume
 ```
 
+### Helper Script
+
+For convenience, a helper script is provided to start training:
+
+```bash
+# Start Training
+transformer-examples/scripts/start_training.sh
+```
+
 ### Default Output Directory
 
 The model checkpoints and logs will be saved to `/home/ubuntu/roformer` by default. You can specify a different output directory using the `--output_dir` argument:

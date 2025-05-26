@@ -11,6 +11,9 @@ from utils import Config
 import torch
 import torch.nn.functional as F
 import debugpy
+import os
+import json
+from typing import Union
 
 class RoFormerDecoderLayer(nn.Module):
     def __init__(self, config: Config):
@@ -84,10 +87,6 @@ class RoFormerDecoder(nn.Module):
             
         return x
 
-import os
-import json
-from typing import Union
-
 class RoFormerForCausalLM(nn.Module):
     def _tie_weights(self):
         self.lm_head.weight = self.backbone.embeddings.weight
@@ -97,6 +96,31 @@ class RoFormerForCausalLM(nn.Module):
         self.backbone = backbone
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
         self._tie_weights()
+
+    def save_pretrained(self, save_directory: Union[str, os.PathLike]):
+        """
+        Save the model and its configuration to a directory.
+        
+        Args:
+            save_directory (str or os.PathLike): Directory to save the model to.
+        """
+        # Create the save directory if it doesn't exist
+        os.makedirs(save_directory, exist_ok=True)
+        
+        # Save the model's state dict
+        model_path = os.path.join(save_directory, "pytorch_model.bin")
+        torch.save(self.state_dict(), model_path)
+
+        # Save the configuration by dynamically getting all non-private attributes
+        config_dict = {k: getattr(self.backbone.config, k) 
+                      for k in vars(self.backbone.config) 
+                      if not k.startswith('_') and not callable(getattr(self.backbone.config, k))}
+        
+        config_path = os.path.join(save_directory, "config.json")
+        with open(config_path, "w") as f:
+            json.dump(config_dict, f, indent=2)
+            
+        print(f"Model saved to {save_directory}")
 
     @classmethod
     def from_pretrained(
@@ -110,39 +134,44 @@ class RoFormerForCausalLM(nn.Module):
         """
         Args
         ----
-        path (str): directory containing `config.json` and `pytorch_model.bin`
+        path (str): directory containing `config.json` and `pytorch_model.bin` or HuggingFace model ID
         map_location: passed to `torch.load`
         strict: forward to `load_state_dict`
         dtype: if set, casts the loaded state‑dict (`torch.float16`, `bfloat16`, …)
         override_config: key‑value pairs to overwrite fields in the JSON config
         """
-        # ── 1. load and merge config ─────────────────────────────
-        config_path = os.path.join(path, "config.json")
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Config file not found at {config_path}")
+        from huggingface_hub import hf_hub_download, snapshot_download
+
+        # Check if path is a HuggingFace model ID
+        if "/" in str(path) and not os.path.exists(path):
+            try:
+                # Download config and model files from HuggingFace
+                config_path = hf_hub_download(repo_id=path, filename="config.json")
+                model_path = hf_hub_download(repo_id=path, filename="pytorch_model.bin")
+            except Exception as e:
+                raise RuntimeError(f"Failed to download model from HuggingFace: {e}")
+        else:
+            # Local path handling
+            config_path = os.path.join(path, "config.json")
+            model_path = os.path.join(path, "pytorch_model.bin")
+            if not os.path.exists(config_path):
+                raise FileNotFoundError(f"Config file not found at {config_path}")
             
+        # ── 1. load and merge config ─────────────────────────────
         with open(config_path) as f:
             cfg_dict = json.load(f)
         cfg_dict.update(override_config)               # user overrides
         config = Config(**cfg_dict)
+
+        print(f"Loaded config: {cfg_dict}")
 
         # ── 2. instantiate model skeleton ────────────────────────
         backbone = RoFormerDecoder(config)
         model = cls(backbone, config)
         
         # ── 3. load weights ──────────────────────────────────────
-        # Find all checkpoint files in the directory
-        checkpoint_dirs = [d for d in os.listdir(path) if d.startswith("checkpoint-")]
-        if not checkpoint_dirs:
-            raise FileNotFoundError(f"No checkpoint files found in {path}")
-        
-        # Sort by checkpoint number to get the highest checkpoint
-        latest_checkpoint = sorted(checkpoint_dirs, key=lambda x: int(x.split('-')[1]))[-1]
-        print(f"Loading checkpoint: {latest_checkpoint}")
-        checkpoint_path = os.path.join(path, latest_checkpoint, "pytorch_model.bin")
-        
         state_dict = torch.load(
-            checkpoint_path,
+            model_path,
             map_location=map_location,
         )
         if dtype is not None:
